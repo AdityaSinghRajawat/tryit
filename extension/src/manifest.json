@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "tryit",
+  "version": "0.1.0",
+  "description": "Make any API docs page executable inline.",
+  "permissions": ["sidePanel", "storage", "scripting", "activeTab"],
+  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "background": {
+    "service_worker": "src/background/backgroundWorker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/contentScript.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "src/panel/index.html"
+  },
+  "action": {
+    "default_title": "Open tryit panel"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

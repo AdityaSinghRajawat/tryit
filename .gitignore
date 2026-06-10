@@ -1,0 +1,29 @@
+# Go
+/server/tryit
+/server/dist/
+*.exe
+*.test
+*.out
+coverage.txt
+
+# Node / Vite / CRXJS
+node_modules/
+extension/dist/
+extension/.output/
+.vite/
+*.tsbuildinfo
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# tryit runtime / secrets
+.tryit/
+*.key
+*.pem
+
+# Generated text from docx (kept locally for reference)
+tryit-SPEC.txt
+tryit-IMPL.txt

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tryit.dev/schema/requestSpec.json",
+  "title": "RequestSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["method", "baseUrl", "path", "auth", "body", "confidence"],
+  "properties": {
+    "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] },
+    "baseUrl": { "type": "string", "format": "uri", "description": "Scheme+host, no trailing slash." },
+    "path": { "type": "string", "description": "Path with {name} tokens for path params, e.g. /v1/users/{id}." },
+    "pathParams": { "type": "array", "items": { "$ref": "#/$defs/param" }, "default": [] },
+    "query":      { "type": "array", "items": { "$ref": "#/$defs/param" }, "default": [] },
+    "headers":    { "type": "array", "items": { "$ref": "#/$defs/header" }, "default": [] },
+    "auth": { "$ref": "#/$defs/auth" },
+    "body": { "$ref": "#/$defs/body" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "param": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name":        { "type": "string", "minLength": 1 },
+        "value":       { "type": "string", "description": "Single value (example or literal)." },
+        "values":      { "type": "array", "items": { "type": "string" }, "description": "Repeated/array param: emits name=v for each (e.g. expand[])." },
+        "required":    { "type": "boolean", "default": false },
+        "description": { "type": "string" }
+      }
+    },
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value"],
+      "properties": {
+        "name":     { "type": "string", "minLength": 1 },
+        "value":    { "type": "string" },
+        "required": { "type": "boolean", "default": false }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type":     { "enum": ["none", "bearer", "basic", "apiKey"] },
+        "in":       { "enum": ["header", "query"], "description": "apiKey only; bearer/basic are always header." },
+        "name":     { "type": "string", "description": "Header or query-param name. Default 'Authorization' for bearer/basic." },
+        "prefix":   { "type": "string", "description": "Value prefix, e.g. 'Bearer ' (bearer) or '' (raw apiKey)." },
+        "valueRef": { "type": "string", "description": "Placeholder for bearer/apiKey, e.g. {{secret:STRIPE_KEY}}." },
+        "username": { "type": "string", "description": "basic: literal or {{secret:NAME}}." },
+        "password": { "type": "string", "description": "basic: literal or {{secret:NAME}}." }
+      },
+      "allOf": [
+        { "if":   { "properties": { "type": { "const": "bearer" } }, "required": ["type"] },
+          "then": { "required": ["valueRef"] } },
+        { "if":   { "properties": { "type": { "const": "apiKey" } }, "required": ["type"] },
+          "then": { "required": ["in", "name", "valueRef"] } },
+        { "if":   { "properties": { "type": { "const": "basic" } }, "required": ["type"] },
+          "then": { "required": ["username", "password"] } }
+      ]
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["encoding"],
+      "properties": {
+        "encoding":    { "enum": ["none", "json", "form", "multipart", "raw"] },
+        "json":        { "description": "json encoding: arbitrary nested JSON template (objects/arrays/scalars).",
+                          "type": ["object", "array", "string", "number", "boolean", "null"] },
+        "form":        { "type": "array", "items": { "$ref": "#/$defs/param" },
+                          "description": "form/multipart: flat fields." },
+        "raw":         { "type": "string", "description": "raw encoding: literal body." },
+        "contentType": { "type": "string", "description": "Override; else derived from encoding." }
+      }
+    }
+  }
+}
