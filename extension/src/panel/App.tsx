@@ -135,7 +135,23 @@ function Style() {
       }
       .row { margin-bottom: 8px; }
       .block { border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
-      .block h3 { font-size: 12px; text-transform: uppercase; color:#666; margin: 0 0 8px; letter-spacing: 0.04em; }
+      .block h3 { font-size: 12px; text-transform: uppercase; color:#666; margin: 0 0 8px; letter-spacing: 0.04em; display:flex; align-items:center; justify-content:space-between; }
+      .muted { color:#888; font-size: 11px; margin: 0 0 6px; }
+      .warn { display:block; color:#b56300; font-size: 11px; margin-top: 4px; }
+      textarea { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
+      .kv-row { display:flex; gap:6px; margin-bottom: 6px; align-items:center; }
+      .kv-row .kv-name { flex: 0 0 35%; }
+      .kv-row .kv-value { flex: 1 1 auto; }
+      .kv-row .del {
+        flex: 0 0 auto; padding: 2px 8px; background:transparent; color:#888;
+        border:1px solid #d0d0d0; border-radius:6px;
+      }
+      .kv-row .del:hover { color:#8b1212; border-color:#c88; }
+      .add {
+        font: 500 11px/1 system-ui; padding: 3px 8px; border-radius: 4px;
+        border: 1px solid #d0d0d0; background:#fff; color:#444;
+      }
+      .add:hover { background:#f4f4f4; }
       button {
         font: 600 13px/1 system-ui; padding: 8px 12px; border-radius: 6px; border: 1px solid #2a78c0;
         background: #2a78c0; color:white; cursor:pointer;

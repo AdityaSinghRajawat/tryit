@@ -10,10 +10,10 @@ type memStore struct {
 	bound string
 }
 
-func (m *memStore) Token() string                       { return m.token }
-func (m *memStore) BoundOrigin() string                 { return m.bound }
-func (m *memStore) SetBoundOrigin(o string) error       { m.bound = o; return nil }
-func (m *memStore) Reset() error                        { m.bound = ""; return nil }
+func (m *memStore) Token() string                 { return m.token }
+func (m *memStore) BoundOrigin() string           { return m.bound }
+func (m *memStore) SetBoundOrigin(o string) error { m.bound = o; return nil }
+func (m *memStore) Reset() error                  { m.bound = ""; return nil }
 
 func TestVerifyBindsOriginOnFirstMatch(t *testing.T) {
 	s := New(&memStore{token: "tk_x"})

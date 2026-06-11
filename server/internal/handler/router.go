@@ -19,10 +19,10 @@ type Deps struct {
 }
 
 // NewRouter wires routes + middleware in order:
-//   1. recover (catches everything)
-//   2. cors  (preflight + ACAO header)
-//   3. security (Host + Origin + bearer; exempts /health and /pair)
-//   4. dispatch
+//  1. recover (catches everything)
+//  2. cors  (preflight + ACAO header)
+//  3. security (Host + Origin + bearer; exempts /health and /pair)
+//  4. dispatch
 func NewRouter(d Deps) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Recover(d.Logger))

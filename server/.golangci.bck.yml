@@ -1,0 +1,63 @@
+# Layer enforcement per IMPL §10.5. Catches accidental dependency-direction
+# violations the compile won't.
+#
+# Layer matrix (one-way: handler -> service -> port -> integration/utils):
+#   - handler/ may NOT import integration/ or service-internal concretes
+#   - service/ may NOT import integration/ concretes or handler/
+#   - integration/ may NOT import service/ or handler/
+#   - helpers/ may import stdlib only
+#
+# Versions are indicative (D9); golangci-lint resolves rules at run time.
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - depguard
+    - gofmt
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
+    - unused
+
+linters-settings:
+  depguard:
+    rules:
+      handler:
+        list-mode: lax
+        files:
+          - "**/internal/handler/**"
+        deny:
+          - pkg: "github.com/AdityaSinghRajawat/tryit/server/internal/integration"
+            desc: "handlers must depend only on service ports, not integrations"
+      service:
+        list-mode: lax
+        files:
+          - "**/internal/service/**"
+        deny:
+          - pkg: "github.com/AdityaSinghRajawat/tryit/server/internal/handler"
+            desc: "services must not depend on handlers"
+          - pkg: "github.com/AdityaSinghRajawat/tryit/server/internal/integration"
+            desc: "services depend on ports they own, not concrete integrations"
+      integration:
+        list-mode: lax
+        files:
+          - "**/internal/integration/**"
+        deny:
+          - pkg: "github.com/AdityaSinghRajawat/tryit/server/internal/handler"
+            desc: "integrations do not depend on handlers"
+        # Note: integrations MAY import service packages, but only to satisfy
+        # service-owned port interfaces. They must not call service methods
+        # (hexagonal: composition flows one way; ports define the seam).
+      helpers:
+        list-mode: lax
+        files:
+          - "**/internal/helpers/**"
+        allow:
+          - $gostd
+        deny:
+          - pkg: "github.com/AdityaSinghRajawat/tryit/server/internal"
+            desc: "helpers are stdlib-only"
