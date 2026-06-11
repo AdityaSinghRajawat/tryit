@@ -39,7 +39,7 @@ async function call<T>(
   if (needsToken) {
     const tok = await getToken();
     if (!tok) {
-      throw new ServerError("not_paired", "extension is not paired yet", 409);
+      throw new ServerError("NOT_PAIRED", "extension is not paired yet", 409);
     }
     headers.set("Authorization", "Bearer " + tok);
   }
@@ -48,7 +48,7 @@ async function call<T>(
     resp = await fetch(SERVER_BASE + path, { ...init, headers });
   } catch (e) {
     throw new ServerError(
-      "target_unreachable",
+      "TARGET_UNREACHABLE",
       "could not reach the tryit server at " + SERVER_BASE,
       0
     );

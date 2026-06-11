@@ -7,38 +7,38 @@ linters:
   settings:
     depguard:
       rules:
-        handler:
+        handlers:
           list-mode: lax
           files:
-            - "**/internal/handler/**"
+            - "**/internal/handlers/**"
           deny:
-            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/integration
+            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/integrations
               desc: handlers must depend only on service ports, not integrations
-        helpers:
+        services:
           list-mode: lax
           files:
-            - "**/internal/helpers/**"
-          allow:
-            - $gostd
+            - "**/internal/services/**"
           deny:
-            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal
-              desc: helpers are stdlib-only
-        integration:
-          list-mode: lax
-          files:
-            - "**/internal/integration/**"
-          deny:
-            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/handler
-              desc: integrations do not depend on handlers
-        service:
-          list-mode: lax
-          files:
-            - "**/internal/service/**"
-          deny:
-            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/handler
+            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/handlers
               desc: services must not depend on handlers
-            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/integration
+            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/integrations
               desc: services depend on ports they own, not concrete integrations
+        integrations:
+          list-mode: lax
+          files:
+            - "**/internal/integrations/**"
+          deny:
+            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/handlers
+              desc: integrations do not depend on handlers
+        middlewares:
+          list-mode: lax
+          files:
+            - "**/internal/middlewares/**"
+          deny:
+            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/services
+              desc: middlewares depend on integration readers, not services
+            - pkg: github.com/AdityaSinghRajawat/tryit/server/internal/handlers
+              desc: middlewares do not depend on handlers
   exclusions:
     generated: lax
     presets:

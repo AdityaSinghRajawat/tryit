@@ -15,10 +15,10 @@ dev: ## Run server + extension dev (two foreground processes — run in two term
 	@echo "Run 'make server-dev' in one terminal and 'make ext-dev' in another."
 
 server-dev: ## Run the Go server (prints pairing token on first start)
-	cd $(SERVER_DIR) && go run ./cmd/tryit
+	cd $(SERVER_DIR) && go run ./cmd
 
 server-build: ## Build the Go server binary into server/tryit
-	cd $(SERVER_DIR) && go build -o tryit ./cmd/tryit
+	cd $(SERVER_DIR) && go build -o tryit ./cmd
 
 server-test: ## Run Go unit tests
 	cd $(SERVER_DIR) && go test ./...
