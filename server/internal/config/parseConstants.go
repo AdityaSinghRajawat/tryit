@@ -45,6 +45,6 @@ SCHEMA:
 `,
 }
 
-func GetParseConfidenceThreshold() float64  { return parseI.confidenceThreshold }
-func GetAIRepairRetries() int               { return parseI.aiRepairRetries }
-func GetParseSystemPromptTemplate() string  { return parseI.systemPromptTemplate }
+func GetParseConfidenceThreshold() float64 { return parseI.confidenceThreshold }
+func GetAIRepairRetries() int              { return parseI.aiRepairRetries }
+func GetParseSystemPromptTemplate() string { return parseI.systemPromptTemplate }

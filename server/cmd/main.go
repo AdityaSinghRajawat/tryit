@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
 func main() {
@@ -14,12 +15,12 @@ func main() {
 
 	app, err := NewApp(ctx)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "tryit: fatal:", err)
+		utils.LogErrorWithoutCtx(err)
 		os.Exit(1)
 	}
 
 	if err := app.Start(ctx); err != nil {
-		fmt.Fprintln(os.Stderr, "tryit: fatal:", err)
+		utils.LogErrorWithoutCtx(err)
 		os.Exit(1)
 	}
 }

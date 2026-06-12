@@ -23,6 +23,9 @@ extension/.output/
 .tryit/
 *.key
 *.pem
+.env
+.env.local
+.env.*.local
 
 # Generated text from docx (kept locally for reference)
 tryit-SPEC.txt

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/routes"
@@ -18,7 +19,6 @@ import (
 type App struct {
 	router http.Handler
 	redis  *redis.Client
-	log    *utils.Logger
 }
 
 func NewApp(_ context.Context) (*App, error) {
@@ -27,16 +27,11 @@ func NewApp(_ context.Context) (*App, error) {
 	}
 
 	app := &App{}
-	app.initLogger()
 	app.initClients()
 	if err := app.loadRoutes(); err != nil {
 		return nil, err
 	}
 	return app, nil
-}
-
-func (a *App) initLogger() {
-	a.log = utils.NewLogger(config.GetLogLevel())
 }
 
 func (a *App) initClients() {
@@ -51,7 +46,7 @@ func (a *App) initClients() {
 }
 
 func (a *App) loadRoutes() error {
-	r, err := routes.NewRoutes(a.log, a.redis)
+	r, err := routes.NewRoutes(a.redis)
 	if err != nil {
 		return err
 	}
@@ -64,7 +59,7 @@ func (a *App) Start(ctx context.Context) error {
 		if err := a.redis.Ping(ctx).Err(); err != nil {
 			return fmt.Errorf("redis ping: %w", err)
 		}
-		a.log.Info("redis connected", "addr", config.GetRedisAddr())
+		utils.LogInfoWithoutCtx("redis connected", zap.String("addr", config.GetRedisAddr()))
 		defer func() { _ = a.redis.Close() }()
 	}
 
@@ -80,7 +75,7 @@ func (a *App) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	a.log.Info("listening", "addr", srv.Addr)
+	utils.LogInfoWithoutCtx("listening", zap.String("addr", srv.Addr))
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -93,7 +88,7 @@ func (a *App) Start(ctx context.Context) error {
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
-		a.log.Info("shutdown signal received, draining")
+		utils.LogInfoWithoutCtx("shutdown signal received, draining")
 		sctx, cancel := context.WithTimeout(context.Background(), config.GetShutdownDrain())
 		defer cancel()
 		return srv.Shutdown(sctx)

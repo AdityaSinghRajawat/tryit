@@ -23,7 +23,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/validations"
 )
 
-func NewRoutes(log *utils.Logger, redisClient *redis.Client) (http.Handler, error) {
+func NewRoutes(redisClient *redis.Client) (http.Handler, error) {
 	pairService, err := pairSvc.NewPairService()
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func NewRoutes(log *utils.Logger, redisClient *redis.Client) (http.Handler, erro
 	// Chain order matters: recover wraps everything, cors handles preflight,
 	// security enforces Host + Origin + bearer.
 	r := chi.NewRouter()
-	r.Use(middlewares.Recoverer(log))
+	r.Use(middlewares.Recoverer())
 	r.Use(middlewares.CORSMiddleware(pairService))
 	r.Use(middlewares.SecurityMiddleware(pairService, config.GetHostHeader()))
 

@@ -63,7 +63,7 @@ func Init() error {
 
 		pairFile: getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
 
-		aiProvider:      strings.ToLower(getEnvWithDefault("AI_PROVIDER", aiI.providerAnthropic)),
+		aiProvider:      strings.ToLower(getEnvWithDefault("AI_PROVIDER", "")),
 		openaiAPIKey:    getEnvWithDefault("OPENAI_API_KEY", ""),
 		anthropicAPIKey: getEnvWithDefault("ANTHROPIC_API_KEY", ""),
 		geminiAPIKey:    getEnvWithDefault("GEMINI_API_KEY", ""),
