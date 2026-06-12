@@ -8,24 +8,43 @@ import (
 	"time"
 )
 
-// envConfig holds every runtime-configurable value (IMPL §10.1). The singleton
-// is populated once by Init() at boot; all consumers read via getters.
 type envConfig struct {
+	// Server + execution
 	port                int
-	secretsBackend      string
 	execTimeout         time.Duration
 	execMaxResponseSize int64
 	execInsecureTLS     bool
 	logLevel            string
-	pairFile            string
-	homeDir             string
+
+	// Secrets
+	secretsBackend    string
+	secretsFile       string
+	secretsPassphrase string
+
+	// Pairing
+	pairFile string
+
+	// AI provider — switchable via AI_PROVIDER; each provider has its own key.
+	aiProvider      string
+	openaiAPIKey    string
+	anthropicAPIKey string
+	geminiAPIKey    string
+	ollamaHost      string
+	ollamaModel     string
+
+	// Cache (Redis-backed parse cache)
+	cacheEnabled  bool
+	cacheTTL      time.Duration
+	redisAddr     string
+	redisPassword string
+	redisDB       int
+
+	homeDir string
 }
 
 var envConfigI *envConfig
 
-// Init populates the singleton from process env vars + defaults. Idempotent:
-// a second call is a no-op. Any env var that fails to parse falls back to its
-// default — getEnv*WithDefault helpers absorb the error.
+// Init populates the singleton from env vars + defaults. Idempotent.
 func Init() error {
 	if envConfigI != nil {
 		return nil
@@ -33,13 +52,31 @@ func Init() error {
 	homeDir, _ := os.UserHomeDir()
 	envConfigI = &envConfig{
 		port:                getEnvIntWithDefault("TRYIT_PORT", 8765),
-		secretsBackend:      getEnvWithDefault("TRYIT_SECRETS_BACKEND", "env"),
 		execTimeout:         getEnvDurationWithDefault("TRYIT_EXEC_TIMEOUT", 30*time.Second),
 		execMaxResponseSize: getEnvInt64WithDefault("TRYIT_EXEC_MAX_RESPONSE_BYTES", 10*1024*1024),
 		execInsecureTLS:     getEnvBoolWithDefault("TRYIT_EXEC_INSECURE_TLS", false),
 		logLevel:            strings.ToLower(getEnvWithDefault("TRYIT_LOG_LEVEL", "info")),
-		pairFile:            getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
-		homeDir:             homeDir,
+
+		secretsBackend:    getEnvWithDefault("TRYIT_SECRETS_BACKEND", "env"),
+		secretsFile:       getEnvWithDefault("TRYIT_SECRETS_FILE", defaultSecretsFile(homeDir)),
+		secretsPassphrase: getEnvWithDefault("TRYIT_SECRETS_PASSPHRASE", ""),
+
+		pairFile: getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
+
+		aiProvider:      strings.ToLower(getEnvWithDefault("AI_PROVIDER", aiI.providerAnthropic)),
+		openaiAPIKey:    getEnvWithDefault("OPENAI_API_KEY", ""),
+		anthropicAPIKey: getEnvWithDefault("ANTHROPIC_API_KEY", ""),
+		geminiAPIKey:    getEnvWithDefault("GEMINI_API_KEY", ""),
+		ollamaHost:      getEnvWithDefault("OLLAMA_HOST", aiI.defaultOllamaHost),
+		ollamaModel:     getEnvWithDefault("OLLAMA_MODEL", aiI.defaultOllamaModel),
+
+		cacheEnabled:  getEnvBoolWithDefault("TRYIT_CACHE_ENABLED", true),
+		cacheTTL:      getEnvDurationWithDefault("TRYIT_CACHE_TTL", 24*time.Hour),
+		redisAddr:     getEnvWithDefault("TRYIT_REDIS_ADDR", ""),
+		redisPassword: getEnvWithDefault("TRYIT_REDIS_PASSWORD", ""),
+		redisDB:       getEnvIntWithDefault("TRYIT_REDIS_DB", 0),
+
+		homeDir: homeDir,
 	}
 	return nil
 }
@@ -51,12 +88,15 @@ func defaultPairFile(home string) string {
 	return home + "/.tryit/pair.json"
 }
 
-// --- reusable env helpers --------------------------------------------------
+func defaultSecretsFile(home string) string {
+	if home == "" {
+		return ""
+	}
+	return home + "/.tryit/secrets.enc"
+}
 
-// GetEnvByKey reads a runtime env var by key. Use this from services that
-// need dynamically-named env vars (e.g. the secret service's per-NAME
-// TRYIT_SECRET_<NAME> reads) — services should never touch os.Getenv
-// directly. Returns the empty string if unset.
+// GetEnvByKey is the dynamic-key escape hatch — services should never touch
+// os.Getenv directly.
 func GetEnvByKey(key string) string { return os.Getenv(key) }
 
 func getEnvWithDefault(key, defaultValue string) string {
@@ -98,16 +138,32 @@ func getEnvDurationWithDefault(key string, defaultValue time.Duration) time.Dura
 	return defaultValue
 }
 
-// --- getters --------------------------------------------------------------
-
 func GetPort() int                  { return envConfigI.port }
-func GetSecretsBackend() string     { return envConfigI.secretsBackend }
 func GetExecTimeout() time.Duration { return envConfigI.execTimeout }
 func GetExecMaxResponseSize() int64 { return envConfigI.execMaxResponseSize }
 func GetExecInsecureTLS() bool      { return envConfigI.execInsecureTLS }
 func GetLogLevel() string           { return envConfigI.logLevel }
-func GetPairFile() string           { return envConfigI.pairFile }
-func GetHomeDir() string            { return envConfigI.homeDir }
+
+func GetSecretsBackend() string    { return envConfigI.secretsBackend }
+func GetSecretsFile() string       { return envConfigI.secretsFile }
+func GetSecretsPassphrase() string { return envConfigI.secretsPassphrase }
+
+func GetPairFile() string { return envConfigI.pairFile }
+
+func GetAIProvider() string      { return envConfigI.aiProvider }
+func GetOpenAIAPIKey() string    { return envConfigI.openaiAPIKey }
+func GetAnthropicAPIKey() string { return envConfigI.anthropicAPIKey }
+func GetGeminiAPIKey() string    { return envConfigI.geminiAPIKey }
+func GetOllamaHost() string      { return envConfigI.ollamaHost }
+func GetOllamaModel() string     { return envConfigI.ollamaModel }
+
+func GetCacheEnabled() bool      { return envConfigI.cacheEnabled }
+func GetCacheTTL() time.Duration { return envConfigI.cacheTTL }
+func GetRedisAddr() string       { return envConfigI.redisAddr }
+func GetRedisPassword() string   { return envConfigI.redisPassword }
+func GetRedisDB() int            { return envConfigI.redisDB }
+
+func GetHomeDir() string { return envConfigI.homeDir }
 
 func GetListenAddr() string { return net.JoinHostPort("127.0.0.1", strconv.Itoa(envConfigI.port)) }
 func GetHostHeader() string { return "127.0.0.1:" + strconv.Itoa(envConfigI.port) }

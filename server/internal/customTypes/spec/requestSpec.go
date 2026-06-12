@@ -20,8 +20,8 @@ type RequestSpec struct {
 	Notes      string   `json:"notes,omitempty"`
 }
 
-// SecretRefs scans Auth.* (the only fields where secrets are allowed by the
-// contract) and returns the placeholder NAMEs found, deduped, in stable order.
+// SecretRefs returns deduped placeholder NAMEs found in Auth.* — the only
+// fields where the contract allows them.
 func (s RequestSpec) SecretRefs() []string {
 	re := config.GetSecretPlaceholderRegex()
 	seen := map[string]struct{}{}
@@ -39,9 +39,8 @@ func (s RequestSpec) SecretRefs() []string {
 	return out
 }
 
-// Validate mirrors the schema's allOf rules and enum constraints. The full
-// JSON Schema validator (utils) is authoritative; this is a fast pre-check
-// for handler input.
+// Validate is a fast pre-check mirroring the schema's allOf rules; the
+// JSON-Schema validator in validations/ is authoritative.
 func (s RequestSpec) Validate() error {
 	switch Method(strings.ToUpper(s.Method)) {
 	case MethodGET, MethodPOST, MethodPUT, MethodPATCH, MethodDELETE, MethodHEAD, MethodOPTIONS:

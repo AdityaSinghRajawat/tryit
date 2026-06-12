@@ -2,7 +2,7 @@ package config
 
 type pairConsts struct {
 	tokenPrefix       string
-	keychainEntryName string // Phase 2 use
+	keychainEntryName string
 }
 
 var pairI = &pairConsts{

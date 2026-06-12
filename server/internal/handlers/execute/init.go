@@ -1,4 +1,3 @@
-// Package execute serves POST /execute.
 package execute
 
 import executeSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/execute"

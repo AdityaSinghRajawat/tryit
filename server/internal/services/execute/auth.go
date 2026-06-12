@@ -11,12 +11,9 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-// injectAuth resolves {{secret:NAME}} placeholders against s.Resolver and
-// stamps the right header / query on req. Returns a masked preview string
-// (never the real value) for the request preview.
-//
-// mappedRefs maps the placeholder NAME → stored secret name (the panel's
-// secretRefs). When a placeholder has no entry, we resolve by its own name.
+// injectAuth resolves {{secret:NAME}} placeholders and stamps the resulting
+// header / query on req. Returns the masked preview line for the request
+// preview — never the real secret.
 func (s *ExecuteService) injectAuth(
 	req *http.Request,
 	spec specType.RequestSpec,
@@ -101,14 +98,11 @@ func (s *ExecuteService) resolveScalar(
 	if cerr != nil {
 		return "", cerr
 	}
-
 	sec, cerr := s.Resolver.Resolve(name)
 	if cerr != nil {
 		return "", cerr
 	}
-
 	v, _, _ := sec.Reveal()
-
 	return v, nil
 }
 
@@ -120,17 +114,14 @@ func (s *ExecuteService) resolveBasicHalf(
 	if !strings.Contains(field, "{{secret:") {
 		return field, nil
 	}
-
 	name, cerr := parseSecretRef(field, mapped)
 	if cerr != nil {
 		return "", cerr
 	}
-
 	sec, cerr := s.Resolver.Resolve(name)
 	if cerr != nil {
 		return "", cerr
 	}
-
 	v, u, p := sec.Reveal()
 	if sec.Type() == "basic" {
 		if half == specType.BasicHalfUser {
@@ -138,12 +129,11 @@ func (s *ExecuteService) resolveBasicHalf(
 		}
 		return p, nil
 	}
-
 	return v, nil
 }
 
-// parseSecretRef extracts the NAME out of "{{secret:NAME}}" and maps it
-// through the panel-supplied secretRefs override. Pure helper — no state.
+// parseSecretRef extracts NAME from "{{secret:NAME}}" and applies the panel
+// secretRefs override.
 func parseSecretRef(template string, mapped map[string]string) (string, *config.CustomError) {
 	m := config.GetSecretPlaceholderRegex().FindStringSubmatch(template)
 	if len(m) != 2 {
@@ -152,14 +142,12 @@ func parseSecretRef(template string, mapped map[string]string) (string, *config.
 			config.GetErrCodeInvalidRequest(),
 		)
 	}
-
 	name := m[1]
 	if mapped != nil {
 		if v, ok := mapped[name]; ok && v != "" {
 			name = v
 		}
 	}
-
 	return name, nil
 }
 
@@ -167,6 +155,5 @@ func headerOrDefault(want, dflt string) string {
 	if want == "" {
 		return dflt
 	}
-
 	return want
 }

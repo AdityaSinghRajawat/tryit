@@ -1,7 +1,3 @@
-// http.go is the HTTP utility hub: the injectable HttpClient (constructed
-// once by routes, held by the service), request building from a RequestSpec,
-// and the small header/body shaping helpers callers use to render previews.
-// Nothing here is service-level business logic — services compose these.
 package utils
 
 import (
@@ -23,8 +19,6 @@ import (
 	specType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/spec"
 )
 
-// HTTPResponse is the shaped outcome of an outbound HTTP call after body cap
-// + truncation tracking. Services map it into wire DTOs.
 type HTTPResponse struct {
 	Status    int
 	Headers   http.Header
@@ -32,19 +26,14 @@ type HTTPResponse struct {
 	Truncated bool
 }
 
-// ----- HttpClient (injectable) -------------------------------------------
-
-// HttpClient wraps *http.Client with config-driven timeouts, a TLS policy,
-// and a redirect policy that strips Authorization on cross-host hops so a
-// secret can never leak to a redirected target. Construct one in
-// routes.NewRoutes and inject it into the services that need outbound HTTP.
+// HttpClient is injectable so each caller (service or integration) owns its
+// own connection pool + base URL. The redirect policy strips Authorization
+// on cross-host hops so a secret never leaks to a redirected target.
 type HttpClient struct {
 	client  *http.Client
-	BaseURL string // optional — Phase 2 named integrations set this; the dynamic execute path leaves it empty.
+	BaseURL string
 }
 
-// NewHttpClient builds an HttpClient with the supplied total timeout and
-// optional baseURL (empty when the caller will pass absolute URLs).
 func NewHttpClient(baseURL string, timeout time.Duration) *HttpClient {
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -74,9 +63,8 @@ func NewHttpClient(baseURL string, timeout time.Duration) *HttpClient {
 	}
 }
 
-// Do sends the prepared request and returns the shaped response. Body reads
-// are capped at config.GetExecMaxResponseSize(); transport errors surface as
-// errors and HTTP statuses are returned as data.
+// Do sends req and returns the shaped response with the body capped at
+// config.GetExecMaxResponseSize().
 func (c *HttpClient) Do(req *http.Request) (*HTTPResponse, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -96,9 +84,6 @@ func (c *HttpClient) Do(req *http.Request) (*HTTPResponse, error) {
 	}, nil
 }
 
-// stripAuthOnCrossHost is the CheckRedirect policy: cap redirects per config
-// and drop the Authorization header on any cross-host hop so a secret can
-// never leak to a redirected target.
 func stripAuthOnCrossHost(req *http.Request, via []*http.Request) error {
 	if len(via) >= config.GetMaxRedirects() {
 		return http.ErrUseLastResponse
@@ -130,12 +115,10 @@ func readCappedBody(r io.Reader, limit int64) ([]byte, bool, error) {
 	return b, true, nil
 }
 
-// ----- Request building --------------------------------------------------
-
-// BuildHTTPRequest produces an *http.Request from a RequestSpec, without
-// secret resolution. Auth-related fields keep their {{secret:NAME}}
-// placeholders verbatim; the caller (execute service) stamps secrets on the
-// returned request as a separate step so secret values stay localised.
+// BuildHTTPRequest produces an *http.Request from a RequestSpec without
+// secret resolution — {{secret:NAME}} placeholders survive in auth fields and
+// are stamped onto the request by the caller (execute service) as a separate
+// step so secret values stay localised.
 func BuildHTTPRequest(ctx context.Context, s specType.RequestSpec) (*http.Request, error) {
 	u, err := url.Parse(s.BaseURL)
 	if err != nil {
@@ -248,10 +231,6 @@ func buildHTTPBody(b specType.BodySpec) ([]byte, string, error) {
 	}
 }
 
-// ----- Header / body shaping helpers -------------------------------------
-
-// FlattenHeaders collapses a multi-valued http.Header into a single-value
-// map[string]string keyed by header name. Empty header values are dropped.
 func FlattenHeaders(h http.Header) map[string]string {
 	out := make(map[string]string, len(h))
 	for k, v := range h {
@@ -263,10 +242,8 @@ func FlattenHeaders(h http.Header) map[string]string {
 	return out
 }
 
-// RequestBodyPreview returns up to 64 KiB of an *http.Request's body without
-// consuming it. The request must have been built with a seekable body
-// (http.NewRequestWithContext + bytes.NewReader sets GetBody automatically);
-// otherwise an empty string is returned.
+// RequestBodyPreview returns up to 64 KiB of req's body without consuming it.
+// Empty if the body wasn't built with a seekable reader (no GetBody).
 func RequestBodyPreview(req *http.Request) string {
 	if req.Body == nil || req.GetBody == nil {
 		return ""
@@ -282,9 +259,7 @@ func RequestBodyPreview(req *http.Request) string {
 	return string(buf[:n])
 }
 
-// StripHeaderName drops the "Name: " prefix from a "Name: Value" string and
-// returns only the value half. Returns the input unchanged if no colon is
-// present. Used for masked-preview Authorization rendering.
+// StripHeaderName drops the "Name: " prefix from a "Name: Value" string.
 func StripHeaderName(headerLine string) string {
 	for i := 0; i < len(headerLine); i++ {
 		if headerLine[i] == ':' && i+2 <= len(headerLine) {

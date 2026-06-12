@@ -9,14 +9,6 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-// Execute orchestrates the request lifecycle: build → inject → send → mask.
-// All HTTP plumbing is delegated to utils (BuildHTTPRequest +
-// s.HttpClient.Do); this method only owns the secret-aware steps and the
-// wire-response assembly.
-//
-// Returns *config.CustomError so the handler can pass it straight to
-// utils.HandleCustomError. Error code classification happens at each failure
-// point inline — no sentinels, no boundary-mapping.
 func (s *ExecuteService) Execute(
 	ctx context.Context,
 	spec specType.RequestSpec,

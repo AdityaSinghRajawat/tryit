@@ -1,6 +1,5 @@
-// Package pair serves POST /pair (IMPL §8.1). Exempt from the security
-// middleware — the body token is the auth; the pair service performs its own
-// constant-time compare.
+// Package pair serves POST /pair — exempt from the security middleware
+// because the body token is the auth.
 package pair
 
 import pairSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/pair"

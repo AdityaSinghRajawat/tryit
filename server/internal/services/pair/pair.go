@@ -8,13 +8,8 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 )
 
-// Verify implements §8.1:
-//   - If unbound: constant-time compare; on match, bind the calling Origin.
-//   - If bound: require Origin == bound AND token match.
-//
-// Errors are classified inline as *config.CustomError so handlers can pass
-// them straight to utils.HandleCustomError. Returns the (now-)bound origin
-// on success.
+// Verify (§8.1): constant-time token compare; binds Origin on first match,
+// requires Origin == bound on subsequent calls.
 func (s *PairService) Verify(token, origin string) (string, *config.CustomError) {
 	if subtle.ConstantTimeCompare([]byte(strings.TrimSpace(token)), []byte(s.Token())) != 1 {
 		return "", config.NewCustomError(

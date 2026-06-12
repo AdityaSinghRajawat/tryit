@@ -8,8 +8,6 @@ import (
 	secretType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/secret"
 )
 
-// Resolve returns the stored secret by NAME. Errors are classified inline as
-// *config.CustomError — handlers pass them straight to utils.HandleCustomError.
 func (s *SecretService) Resolve(name string) (secretType.Secret, *config.CustomError) {
 	if name == "" {
 		return secretType.Secret{}, config.NewCustomError(

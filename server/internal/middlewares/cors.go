@@ -7,10 +7,9 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 )
 
-// CORSMiddleware answers preflight (OPTIONS) and attaches
-// Access-Control-Allow-Origin for the bound extension origin. Never "*".
-// First-time pairing (/pair) preflight is permitted for any chrome-extension://
-// origin so the panel can submit its token before binding.
+// CORSMiddleware: ACAO is always the bound extension origin, never "*". The
+// /pair preflight is allowed for any chrome-extension:// so the panel can
+// submit a token before its origin is bound.
 func CORSMiddleware(pair PairReader) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

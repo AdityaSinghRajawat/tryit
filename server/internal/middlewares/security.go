@@ -10,24 +10,15 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-// PairReader is the narrow surface this package needs from the pairing store.
-// SecurityMiddleware uses the full surface (Token + BoundOrigin); CORS only
-// reads BoundOrigin. The pair service that satisfies it is passed in by
-// routes.NewRoutes at boot.
+// PairReader is the narrow surface the cors + security middlewares need.
 type PairReader interface {
 	Token() string
 	BoundOrigin() string
 }
 
-// SecurityMiddleware enforces the gate (IMPL §8.2):
-//   - Host header anti-DNS-rebinding check
-//   - Origin must equal the bound origin
-//   - Bearer token matches the stored token (constant-time)
-//   - 409 not_paired before a token is bound
-//
-// /health is fully exempt. /pair is exempt from token+origin checks (the body
-// token is the auth and the pair service performs its own constant-time
-// compare).
+// SecurityMiddleware enforces IMPL §8.2: Host anti-DNS-rebinding, Origin must
+// equal bound, constant-time bearer, 409 not_paired before binding. /health
+// is fully exempt; /pair is exempt from token+origin (body token is the auth).
 func SecurityMiddleware(pair PairReader, hostHeader string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

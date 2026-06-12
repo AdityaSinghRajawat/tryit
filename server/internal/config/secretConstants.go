@@ -1,9 +1,9 @@
 package config
 
 type secretConsts struct {
-	envPrefix   string
-	userSuffix  string
-	passSuffix  string
+	envPrefix  string
+	userSuffix string
+	passSuffix string
 }
 
 var secretI = &secretConsts{

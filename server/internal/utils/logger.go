@@ -1,6 +1,3 @@
-// Package utils holds flat, stateless helpers. No init, no DI — purely
-// functions and factories. Any utility that needs lifetime state belongs in
-// helpers/ instead.
 package utils
 
 import (
@@ -23,5 +20,6 @@ func NewLogger(level string) *Logger {
 	default:
 		lvl = slog.LevelInfo
 	}
+
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lvl}))
 }

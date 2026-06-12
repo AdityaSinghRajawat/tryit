@@ -1,9 +1,6 @@
-// Package execute orchestrates the build → inject → send → mask flow for an
-// outbound request driven by a user-supplied RequestSpec. HTTP plumbing
-// (request building, sending, header/body shaping) lives in utils;
-// secret-aware logic (auth resolution + stamping) lives here.
-//
-// Phase 1 skips the consent gate (D-P1-6); Phase 2 adds it.
+// Package execute orchestrates build → inject → send → mask for a
+// user-supplied RequestSpec. HTTP plumbing is in utils; secret-aware logic
+// lives here.
 package execute
 
 import (

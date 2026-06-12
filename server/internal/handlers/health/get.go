@@ -7,7 +7,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-// Version is set at build time via -ldflags (Phase 3); default "dev".
+// Version is set at build time via -ldflags.
 var Version = "dev"
 
 func (h *HealthHandler) Get(w http.ResponseWriter, r *http.Request) {

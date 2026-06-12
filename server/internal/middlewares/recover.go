@@ -1,6 +1,4 @@
-// Package middlewares holds HTTP middlewares as flat files. Each exports a
-// factory that closes over its dependencies and returns the standard
-// `func(http.Handler) http.Handler` shape so chi can mount it.
+// Package middlewares: flat HTTP middlewares as factory closures.
 package middlewares
 
 import (
@@ -10,9 +8,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-// Recoverer catches panics, logs the redacted context, and returns a generic
-// 500. The panic value is logged (it may contain secrets in a bug) but the
-// response is always the standard envelope so no detail leaks.
+// Recoverer logs the panic value + stack and returns a generic 500 envelope.
 func Recoverer(log *utils.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -22,8 +22,7 @@ func GetHeaderOrigin() string          { return securityI.headerOrigin }
 func GetHeaderHost() string            { return securityI.headerHost }
 func GetExtensionOriginPrefix() string { return securityI.extensionOriginPrefix }
 
-// IsExemptPath returns true when the path bypasses the bearer + origin gate
-// (only /health and /pair).
+// IsExemptPath: bypasses the bearer + origin gate.
 func IsExemptPath(p string) bool {
 	return p == securityI.pathHealth || p == securityI.pathPair
 }

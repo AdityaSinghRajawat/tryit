@@ -1,6 +1,3 @@
-// app.go is the bootstrap: load config, build the router (which wires
-// integrations + services + handlers), and run the http.Server with a
-// graceful drain on SIGINT/SIGTERM.
 package main
 
 import (
@@ -9,30 +6,71 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/routes"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func Run() error {
+type App struct {
+	router http.Handler
+	redis  *redis.Client
+	log    *utils.Logger
+}
+
+func NewApp(_ context.Context) (*App, error) {
 	if err := config.Init(); err != nil {
+		return nil, err
+	}
+
+	app := &App{}
+	app.initLogger()
+	app.initClients()
+	if err := app.loadRoutes(); err != nil {
+		return nil, err
+	}
+	return app, nil
+}
+
+func (a *App) initLogger() {
+	a.log = utils.NewLogger(config.GetLogLevel())
+}
+
+func (a *App) initClients() {
+	if config.GetRedisAddr() == "" || !config.GetCacheEnabled() {
+		return
+	}
+	a.redis = redis.NewClient(&redis.Options{
+		Addr:     config.GetRedisAddr(),
+		Password: config.GetRedisPassword(),
+		DB:       config.GetRedisDB(),
+	})
+}
+
+func (a *App) loadRoutes() error {
+	r, err := routes.NewRoutes(a.log, a.redis)
+	if err != nil {
 		return err
 	}
-	log := utils.NewLogger(config.GetLogLevel())
+	a.router = r
+	return nil
+}
 
-	mux, err := routes.NewRoutes(log)
-	if err != nil {
-		return fmt.Errorf("routes: %w", err)
+func (a *App) Start(ctx context.Context) error {
+	if a.redis != nil {
+		if err := a.redis.Ping(ctx).Err(); err != nil {
+			return fmt.Errorf("redis ping: %w", err)
+		}
+		a.log.Info("redis connected", "addr", config.GetRedisAddr())
+		defer func() { _ = a.redis.Close() }()
 	}
 
 	srv := &http.Server{
 		Addr:              config.GetListenAddr(),
-		Handler:           mux,
+		Handler:           a.router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      config.GetExecTimeout() + 30*time.Second,
@@ -42,7 +80,7 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	log.Info("listening", "addr", srv.Addr)
+	a.log.Info("listening", "addr", srv.Addr)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -51,16 +89,13 @@ func Run() error {
 		}
 	}()
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
 	select {
 	case err := <-errCh:
 		return err
-	case <-sigCh:
-		log.Info("shutdown signal received, draining")
-		ctx, cancel := context.WithTimeout(context.Background(), config.GetShutdownDrain())
+	case <-ctx.Done():
+		a.log.Info("shutdown signal received, draining")
+		sctx, cancel := context.WithTimeout(context.Background(), config.GetShutdownDrain())
 		defer cancel()
-		return srv.Shutdown(ctx)
+		return srv.Shutdown(sctx)
 	}
 }

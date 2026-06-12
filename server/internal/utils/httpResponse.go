@@ -8,8 +8,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 )
 
-// errorCodeToStatus maps every error code to its HTTP status (IMPL §9.2).
-// Add new entries when new codes appear.
+// errorCodeToStatus is the single source of truth for code → HTTP status.
 var errorCodeToStatus = map[config.CustomErrorCode]int{
 	config.GetErrCodeUnauthorized():      http.StatusUnauthorized,
 	config.GetErrCodeForbiddenOrigin():   http.StatusForbidden,
@@ -22,7 +21,6 @@ var errorCodeToStatus = map[config.CustomErrorCode]int{
 	config.GetErrCodeInternal():          http.StatusInternalServerError,
 }
 
-// errorEnvelope is the wire shape returned to the panel for non-data errors.
 type errorEnvelope struct {
 	Error errorBody `json:"error"`
 }
@@ -32,20 +30,16 @@ type errorBody struct {
 	Message string                 `json:"message"`
 }
 
-// LogAndReturnCustomErr is the standard way services produce a *CustomError:
-// it logs (Phase 2 plugs a context-aware logger here) and returns the typed
-// error so handlers can pass it straight to HandleCustomError.
 func LogAndReturnCustomErr(
 	_ context.Context,
 	err error,
 	code config.CustomErrorCode,
 ) *config.CustomError {
-	// TODO(phase 2): pull a slog.Logger from ctx and emit an error line.
+	// TODO: pull a context-aware logger from ctx and emit an error line.
 	return config.NewCustomError(err, code)
 }
 
-// HandleCustomError writes a *CustomError as the standard envelope, mapping
-// its code to the right HTTP status. Safe with a nil customErr (no-op).
+// HandleCustomError renders the standard error envelope. Safe with nil.
 func HandleCustomError(w http.ResponseWriter, customErr *config.CustomError) {
 	if customErr == nil {
 		return
@@ -61,8 +55,6 @@ func HandleCustomError(w http.ResponseWriter, customErr *config.CustomError) {
 	writeJSON(w, status, errorEnvelope{Error: errorBody{Code: customErr.ErrCode, Message: msg}})
 }
 
-// BuildAndSendResponse writes a success response. If marshaling fails, it
-// emits an internal error envelope.
 func BuildAndSendResponse(ctx context.Context, w http.ResponseWriter, resp any, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -71,16 +63,13 @@ func BuildAndSendResponse(ctx context.Context, w http.ResponseWriter, resp any, 
 	}
 }
 
-// DecodeJSONRequest decodes a JSON body strictly: unknown fields are rejected.
-// Use this in every handler that takes a typed request body.
+// DecodeJSONRequest decodes strictly: unknown fields are rejected.
 func DecodeJSONRequest(r *http.Request, v any) error {
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	return d.Decode(v)
 }
 
-// writeJSON is internal; callers should use BuildAndSendResponse for success
-// and HandleCustomError for failures so the wire shape is consistent.
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

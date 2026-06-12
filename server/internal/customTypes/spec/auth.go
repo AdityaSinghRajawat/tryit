@@ -10,9 +10,7 @@ type AuthSpec struct {
 	Password string `json:"password,omitempty"`
 }
 
-// BasicHalf distinguishes the user vs password half when resolving Basic-auth
-// secrets. Used by the execute service's auth injector to know which half of
-// a single basic-typed Secret to return.
+// BasicHalf selects user vs password when resolving a single basic-typed Secret.
 type BasicHalf int
 
 const (

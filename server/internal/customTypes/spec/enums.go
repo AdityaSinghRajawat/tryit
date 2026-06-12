@@ -1,6 +1,4 @@
-// Package spec is the Go mirror of api/requestSpec.schema.json (the single
-// source of truth). Keep in sync with extension/src/shared/types.ts. The
-// contract round-trip test (api/contract_test.go) enforces it.
+// Package spec mirrors api/requestSpec.schema.json and extension/src/shared/types.ts.
 package spec
 
 type Method string
