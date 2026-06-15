@@ -5,9 +5,9 @@ type PairReader interface {
 }
 
 type HealthHandler struct {
-	Pair PairReader
+	PairReader PairReader
 }
 
-func NewHealthHandler(pair PairReader) *HealthHandler {
-	return &HealthHandler{Pair: pair}
+func NewHealthHandler(pairReader PairReader) *HealthHandler {
+	return &HealthHandler{PairReader: pairReader}
 }

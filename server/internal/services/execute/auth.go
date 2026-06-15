@@ -98,7 +98,7 @@ func (s *ExecuteService) resolveScalar(
 	if cerr != nil {
 		return "", cerr
 	}
-	sec, cerr := s.Resolver.Resolve(name)
+	sec, cerr := s.SecretService.Resolve(name)
 	if cerr != nil {
 		return "", cerr
 	}
@@ -118,7 +118,7 @@ func (s *ExecuteService) resolveBasicHalf(
 	if cerr != nil {
 		return "", cerr
 	}
-	sec, cerr := s.Resolver.Resolve(name)
+	sec, cerr := s.SecretService.Resolve(name)
 	if cerr != nil {
 		return "", cerr
 	}

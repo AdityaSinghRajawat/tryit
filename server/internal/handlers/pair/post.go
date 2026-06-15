@@ -11,8 +11,16 @@ import (
 func (h *PairHandler) Post(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var req pairType.Request
-	if err := utils.DecodeJSONRequest(r, &req); err != nil {
+	req := &pairType.Request{}
+	if err := utils.DecodeJSONRequest(r, req); err != nil {
+		utils.HandleCustomError(
+			w,
+			utils.LogAndReturnCustomErr(ctx, err, config.GetErrCodeInvalidRequest()),
+		)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
 		utils.HandleCustomError(
 			w,
 			utils.LogAndReturnCustomErr(ctx, err, config.GetErrCodeInvalidRequest()),
@@ -21,7 +29,7 @@ func (h *PairHandler) Post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	origin := r.Header.Get(config.GetHeaderOrigin())
-	bound, customErr := h.Service.Verify(req.Token, origin)
+	bound, customErr := h.PairService.Verify(req.Token, origin)
 	if customErr != nil {
 		utils.HandleCustomError(w, customErr)
 		return

@@ -1,21 +1,27 @@
-// Package execute orchestrates build → inject → send → mask for a
-// user-supplied RequestSpec. HTTP plumbing is in utils; secret-aware logic
-// lives here.
+// Package execute orchestrates build → consent-check → inject → send → mask
+// for a user-supplied RequestSpec.
 package execute
 
 import (
+	consentSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/consent"
 	secretSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/secret"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
 type ExecuteService struct {
-	Resolver   *secretSvc.SecretService
-	HttpClient *utils.HttpClient
+	SecretService  *secretSvc.SecretService
+	ConsentService *consentSvc.ConsentService
+	HttpClient     *utils.HttpClient
 }
 
 func NewExecuteService(
-	resolver *secretSvc.SecretService,
+	secretService *secretSvc.SecretService,
+	consentService *consentSvc.ConsentService,
 	httpClient *utils.HttpClient,
 ) *ExecuteService {
-	return &ExecuteService{Resolver: resolver, HttpClient: httpClient}
+	return &ExecuteService{
+		SecretService:  secretService,
+		ConsentService: consentService,
+		HttpClient:     httpClient,
+	}
 }

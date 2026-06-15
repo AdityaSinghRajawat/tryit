@@ -19,6 +19,18 @@ func (s *ExecuteService) Execute(
 		return nil, config.NewCustomError(err, config.GetErrCodeInvalidRequest())
 	}
 
+	if need := s.checkConsent(req, spec, refs); need != nil {
+		return &executeType.Response{
+			RequestPreview: executeType.RequestPreview{
+				Method:  req.Method,
+				URL:     req.URL.String(),
+				Headers: utils.FlattenHeaders(req.Header),
+				Body:    utils.RequestBodyPreview(req),
+			},
+			ConsentRequired: need,
+		}, nil
+	}
+
 	preview := executeType.RequestPreview{
 		Method:  req.Method,
 		URL:     req.URL.String(),

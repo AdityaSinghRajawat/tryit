@@ -5,9 +5,9 @@ package pair
 import pairSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/pair"
 
 type PairHandler struct {
-	Service *pairSvc.PairService
+	PairService *pairSvc.PairService
 }
 
-func NewPairHandler(svc *pairSvc.PairService) *PairHandler {
-	return &PairHandler{Service: svc}
+func NewPairHandler(pairService *pairSvc.PairService) *PairHandler {
+	return &PairHandler{PairService: pairService}
 }

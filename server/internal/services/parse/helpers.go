@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -20,23 +19,23 @@ func (s *ParseService) cacheKey(req parseType.Request) string {
 	}
 	inner := sha256.Sum256(body)
 	outer := sha256.Sum256([]byte(req.PageURL + "\n" + hex.EncodeToString(inner[:])))
-	return config.GetCacheKeyPrefix() + hex.EncodeToString(outer[:])
+	return hex.EncodeToString(outer[:])
 }
 
-func (s *ParseService) getCachedResponse(ctx context.Context, key string) *parseType.Response {
-	raw, err := s.Redis.GetKey(ctx, key)
-	if err != nil || raw == "" {
+func (s *ParseService) getCachedResponse(key string) *parseType.Response {
+	raw, ok := s.Cache.Get(key)
+	if !ok {
 		return nil
 	}
 	var r parseType.Response
-	if json.Unmarshal([]byte(raw), &r) != nil {
+	if json.Unmarshal(raw, &r) != nil {
 		return nil
 	}
 	r.Source = parseType.SourceCache
 	return &r
 }
 
-func (s *ParseService) saveCachedResponse(ctx context.Context, key string, resp *parseType.Response) {
+func (s *ParseService) saveCachedResponse(key string, resp *parseType.Response) {
 	if resp == nil {
 		return
 	}
@@ -44,7 +43,7 @@ func (s *ParseService) saveCachedResponse(ctx context.Context, key string, resp 
 	if err != nil {
 		return
 	}
-	_ = s.Redis.SetKey(ctx, key, string(raw), config.GetCacheTTL())
+	s.Cache.Set(key, raw)
 }
 
 // detectSpec accepts either { "requestSpec": {...} } or a bare RequestSpec.
@@ -74,7 +73,7 @@ func (s *ParseService) detectSpec(hint any) *specType.RequestSpec {
 }
 
 func (s *ParseService) buildSystemPrompt() string {
-	return config.GetParseSystemPromptTemplate() + string(s.Validator.Raw())
+	return config.GetParseSystemPromptTemplate() + string(s.SchemaValidator.Raw())
 }
 
 func (s *ParseService) buildUserMessage(req parseType.Request) string {

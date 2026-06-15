@@ -21,3 +21,8 @@ Phase 1 verify is "click Try it on a Swagger UI page → live response". The con
 
 ### D-P1-6 — Consent gate deferred to Phase 2
 §8.4's per-(secret, host) consent flow ships in Phase 2 with the secrets manager. Phase 1 has no `consentStore`; `executeService` skips the consent check. The Phase 1 secret comes from env, so first-use risk is bounded.
+
+## Phase 2
+
+### D-P2-CACHE — In-memory LRU + disk, not Redis
+IMPL §9.5 specifies `in-memory LRU (cap 200) + optional disk at ~/.tryit/cache/<hash>.json` for the parse cache. An earlier turn introduced Redis; reverted after re-reading the spec. SPEC §3 picks Go to ship as a "single static binary (trivial install)" — requiring a separate Redis process would break that premise. tryit is a single-user local-first tool; in-memory + disk fits the cardinality (~200 entries, one user) and the deployment story (`brew install`, no service dependencies). Construct via `utils.NewCache()` in `routes/init.go`; inject into `parseService`.

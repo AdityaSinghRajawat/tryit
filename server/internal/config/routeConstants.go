@@ -5,6 +5,7 @@ type routeConsts struct {
 	pathPair    string
 	pathExecute string
 	pathParse   string
+	pathConsent string
 }
 
 var routeI = &routeConsts{
@@ -12,9 +13,11 @@ var routeI = &routeConsts{
 	pathPair:    "/pair",
 	pathExecute: "/execute",
 	pathParse:   "/parse",
+	pathConsent: "/consent",
 }
 
 func GetRoutePathHealth() string  { return routeI.pathHealth }
 func GetRoutePathPair() string    { return routeI.pathPair }
 func GetRoutePathExecute() string { return routeI.pathExecute }
 func GetRoutePathParse() string   { return routeI.pathParse }
+func GetRoutePathConsent() string { return routeI.pathConsent }

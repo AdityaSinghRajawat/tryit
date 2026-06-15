@@ -1,17 +1,17 @@
-package execute
+package consent
 
 import (
 	"net/http"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
-	executeType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/execute"
+	consentType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/consent"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *ExecuteHandler) Post(w http.ResponseWriter, r *http.Request) {
+func (h *ConsentHandler) Post(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	req := &executeType.Request{}
+	req := &consentType.Request{}
 	if err := utils.DecodeJSONRequest(r, req); err != nil {
 		utils.HandleCustomError(
 			w,
@@ -28,11 +28,9 @@ func (h *ExecuteHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, customErr := h.ExecuteService.Execute(ctx, req.RequestSpec, req.SecretRefs)
-	if customErr != nil {
-		utils.HandleCustomError(w, customErr)
+	if cerr := h.ConsentService.Grant(req.Secret, req.Host); cerr != nil {
+		utils.HandleCustomError(w, cerr)
 		return
 	}
-
-	utils.BuildAndSendResponse(ctx, w, resp, http.StatusOK)
+	utils.BuildAndSendResponse(ctx, w, consentType.Response{Granted: true}, http.StatusOK)
 }

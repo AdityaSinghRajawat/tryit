@@ -24,6 +24,9 @@ type envConfig struct {
 	// Pairing
 	pairFile string
 
+	// Consent
+	consentFile string
+
 	// AI provider — switchable via AI_PROVIDER; each provider has its own key.
 	aiProvider      string
 	openaiAPIKey    string
@@ -32,12 +35,9 @@ type envConfig struct {
 	ollamaHost      string
 	ollamaModel     string
 
-	// Cache (Redis-backed parse cache)
-	cacheEnabled  bool
-	cacheTTL      time.Duration
-	redisAddr     string
-	redisPassword string
-	redisDB       int
+	// Cache (in-memory LRU + optional disk persistence, IMPL §9.5)
+	cacheEnabled bool
+	cacheTTL     time.Duration
 
 	homeDir string
 }
@@ -61,20 +61,18 @@ func Init() error {
 		secretsFile:       getEnvWithDefault("TRYIT_SECRETS_FILE", defaultSecretsFile(homeDir)),
 		secretsPassphrase: getEnvWithDefault("TRYIT_SECRETS_PASSPHRASE", ""),
 
-		pairFile: getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
+		pairFile:    getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
+		consentFile: getEnvWithDefault("TRYIT_CONSENT_FILE", defaultConsentFile(homeDir)),
 
-		aiProvider:      strings.ToLower(getEnvWithDefault("AI_PROVIDER", "")),
+		aiProvider:      strings.ToLower(getEnvWithDefault("AI_PROVIDER", aiI.providerAnthropic)),
 		openaiAPIKey:    getEnvWithDefault("OPENAI_API_KEY", ""),
 		anthropicAPIKey: getEnvWithDefault("ANTHROPIC_API_KEY", ""),
 		geminiAPIKey:    getEnvWithDefault("GEMINI_API_KEY", ""),
 		ollamaHost:      getEnvWithDefault("OLLAMA_HOST", aiI.defaultOllamaHost),
 		ollamaModel:     getEnvWithDefault("OLLAMA_MODEL", aiI.defaultOllamaModel),
 
-		cacheEnabled:  getEnvBoolWithDefault("TRYIT_CACHE_ENABLED", true),
-		cacheTTL:      getEnvDurationWithDefault("TRYIT_CACHE_TTL", 24*time.Hour),
-		redisAddr:     getEnvWithDefault("TRYIT_REDIS_ADDR", ""),
-		redisPassword: getEnvWithDefault("TRYIT_REDIS_PASSWORD", ""),
-		redisDB:       getEnvIntWithDefault("TRYIT_REDIS_DB", 0),
+		cacheEnabled: getEnvBoolWithDefault("TRYIT_CACHE_ENABLED", true),
+		cacheTTL:     getEnvDurationWithDefault("TRYIT_CACHE_TTL", 24*time.Hour),
 
 		homeDir: homeDir,
 	}
@@ -95,33 +93,40 @@ func defaultSecretsFile(home string) string {
 	return home + "/.tryit/secrets.enc"
 }
 
+func defaultConsentFile(home string) string {
+	if home == "" {
+		return ""
+	}
+	return home + "/.tryit/consent.json"
+}
+
 // GetEnvByKey is the dynamic-key escape hatch — services should never touch
 // os.Getenv directly.
 func GetEnvByKey(key string) string { return os.Getenv(key) }
 
 func getEnvWithDefault(key, defaultValue string) string {
-	if v := os.Getenv(key); v != "" {
+	if v := GetEnvByKey(key); v != "" {
 		return v
 	}
 	return defaultValue
 }
 
 func getEnvIntWithDefault(key string, defaultValue int) int {
-	if v, err := strconv.Atoi(os.Getenv(key)); err == nil {
+	if v, err := strconv.Atoi(GetEnvByKey(key)); err == nil {
 		return v
 	}
 	return defaultValue
 }
 
 func getEnvInt64WithDefault(key string, defaultValue int64) int64 {
-	if v, err := strconv.ParseInt(os.Getenv(key), 10, 64); err == nil {
+	if v, err := strconv.ParseInt(GetEnvByKey(key), 10, 64); err == nil {
 		return v
 	}
 	return defaultValue
 }
 
 func getEnvBoolWithDefault(key string, defaultValue bool) bool {
-	v := os.Getenv(key)
+	v := GetEnvByKey(key)
 	if v == "" {
 		return defaultValue
 	}
@@ -132,7 +137,7 @@ func getEnvBoolWithDefault(key string, defaultValue bool) bool {
 }
 
 func getEnvDurationWithDefault(key string, defaultValue time.Duration) time.Duration {
-	if d, err := time.ParseDuration(os.Getenv(key)); err == nil {
+	if d, err := time.ParseDuration(GetEnvByKey(key)); err == nil {
 		return d
 	}
 	return defaultValue
@@ -148,7 +153,8 @@ func GetSecretsBackend() string    { return envConfigI.secretsBackend }
 func GetSecretsFile() string       { return envConfigI.secretsFile }
 func GetSecretsPassphrase() string { return envConfigI.secretsPassphrase }
 
-func GetPairFile() string { return envConfigI.pairFile }
+func GetPairFile() string    { return envConfigI.pairFile }
+func GetConsentFile() string { return envConfigI.consentFile }
 
 func GetAIProvider() string      { return envConfigI.aiProvider }
 func GetOpenAIAPIKey() string    { return envConfigI.openaiAPIKey }
@@ -159,9 +165,6 @@ func GetOllamaModel() string     { return envConfigI.ollamaModel }
 
 func GetCacheEnabled() bool      { return envConfigI.cacheEnabled }
 func GetCacheTTL() time.Duration { return envConfigI.cacheTTL }
-func GetRedisAddr() string       { return envConfigI.redisAddr }
-func GetRedisPassword() string   { return envConfigI.redisPassword }
-func GetRedisDB() int            { return envConfigI.redisDB }
 
 func GetHomeDir() string { return envConfigI.homeDir }
 

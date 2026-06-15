@@ -14,14 +14,14 @@ func (s *ParseService) Parse(
 	key := s.cacheKey(req)
 
 	if !req.Force {
-		if hit := s.getCachedResponse(ctx, key); hit != nil {
+		if hit := s.getCachedResponse(key); hit != nil {
 			return hit, nil
 		}
 	}
 
 	if spec := s.detectSpec(req.StructuredHint); spec != nil {
 		resp := parseType.BuildResponse(*spec, parseType.SourceSpec)
-		s.saveCachedResponse(ctx, key, resp)
+		s.saveCachedResponse(key, resp)
 		return resp, nil
 	}
 
@@ -30,6 +30,6 @@ func (s *ParseService) Parse(
 		return nil, cerr
 	}
 	resp := parseType.BuildResponse(*spec, parseType.SourceAI)
-	s.saveCachedResponse(ctx, key, resp)
+	s.saveCachedResponse(key, resp)
 	return resp, nil
 }

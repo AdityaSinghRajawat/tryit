@@ -1,11 +1,22 @@
 package config
 
 type cacheConsts struct {
-	keyPrefix string
+	lruCapacity int
+	diskSubdir  string
 }
 
 var cacheI = &cacheConsts{
-	keyPrefix: "tryit:parse:",
+	lruCapacity: 200,
+	diskSubdir:  "/.tryit/cache",
 }
 
-func GetCacheKeyPrefix() string { return cacheI.keyPrefix }
+func GetCacheLRUCapacity() int { return cacheI.lruCapacity }
+
+// GetCacheDiskDir resolves the on-disk parse cache directory or "" when
+// $HOME is unresolved.
+func GetCacheDiskDir() string {
+	if envConfigI == nil || envConfigI.homeDir == "" {
+		return ""
+	}
+	return envConfigI.homeDir + cacheI.diskSubdir
+}

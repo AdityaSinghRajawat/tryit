@@ -21,7 +21,7 @@ func (s *ParseService) generateRequestSpec(
 	aiReq := aiType.Request{
 		System:      s.buildSystemPrompt(),
 		User:        baseUserMsg,
-		Schema:      s.Validator.Raw(),
+		Schema:      s.SchemaValidator.Raw(),
 		Temperature: config.GetAITemperature(),
 		MaxTokens:   config.GetAIMaxTokens(),
 	}
@@ -40,13 +40,13 @@ func (s *ParseService) generateRequestSpec(
 					"\n\nFix the JSON and respond again with ONLY the corrected JSON object."
 			}
 
-			resp, err := s.AI.Complete(ctx, aiReq)
+			resp, err := s.AIProvider.Complete(ctx, aiReq)
 			if err != nil {
 				return nil, err
 			}
 
 			payload := []byte(utils.StripJSONFences(resp.Content))
-			if vErr := s.Validator.Validate(payload); vErr != nil {
+			if vErr := s.SchemaValidator.Validate(payload); vErr != nil {
 				lastErr = vErr
 				return nil, vErr
 			}

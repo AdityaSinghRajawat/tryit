@@ -8,15 +8,19 @@ import (
 )
 
 type ParseService struct {
-	AI        ai.AIProvider
-	Redis     *utils.RedisUtil
-	Validator *validations.SchemaValidator
+	AIProvider      ai.AIProvider
+	Cache           *utils.Cache
+	SchemaValidator *validations.SchemaValidator
 }
 
 func NewParseService(
 	aiProvider ai.AIProvider,
-	redis *utils.RedisUtil,
-	validator *validations.SchemaValidator,
+	cache *utils.Cache,
+	schemaValidator *validations.SchemaValidator,
 ) *ParseService {
-	return &ParseService{AI: aiProvider, Redis: redis, Validator: validator}
+	return &ParseService{
+		AIProvider:      aiProvider,
+		Cache:           cache,
+		SchemaValidator: schemaValidator,
+	}
 }

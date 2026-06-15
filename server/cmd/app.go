@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
@@ -18,7 +16,6 @@ import (
 
 type App struct {
 	router http.Handler
-	redis  *redis.Client
 }
 
 func NewApp(_ context.Context) (*App, error) {
@@ -27,26 +24,14 @@ func NewApp(_ context.Context) (*App, error) {
 	}
 
 	app := &App{}
-	app.initClients()
 	if err := app.loadRoutes(); err != nil {
 		return nil, err
 	}
 	return app, nil
 }
 
-func (a *App) initClients() {
-	if config.GetRedisAddr() == "" || !config.GetCacheEnabled() {
-		return
-	}
-	a.redis = redis.NewClient(&redis.Options{
-		Addr:     config.GetRedisAddr(),
-		Password: config.GetRedisPassword(),
-		DB:       config.GetRedisDB(),
-	})
-}
-
 func (a *App) loadRoutes() error {
-	r, err := routes.NewRoutes(a.redis)
+	r, err := routes.NewRoutes()
 	if err != nil {
 		return err
 	}
@@ -55,14 +40,6 @@ func (a *App) loadRoutes() error {
 }
 
 func (a *App) Start(ctx context.Context) error {
-	if a.redis != nil {
-		if err := a.redis.Ping(ctx).Err(); err != nil {
-			return fmt.Errorf("redis ping: %w", err)
-		}
-		utils.LogInfoWithoutCtx("redis connected", zap.String("addr", config.GetRedisAddr()))
-		defer func() { _ = a.redis.Close() }()
-	}
-
 	srv := &http.Server{
 		Addr:              config.GetListenAddr(),
 		Handler:           a.router,

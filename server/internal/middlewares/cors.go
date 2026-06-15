@@ -10,13 +10,13 @@ import (
 // CORSMiddleware: ACAO is always the bound extension origin, never "*". The
 // /pair preflight is allowed for any chrome-extension:// so the panel can
 // submit a token before its origin is bound.
-func CORSMiddleware(pair PairReader) func(http.Handler) http.Handler {
+func CORSMiddleware(pairReader PairReader) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get(config.GetHeaderOrigin())
 			allow := ""
 			switch {
-			case pair.BoundOrigin() != "" && origin == pair.BoundOrigin():
+			case pairReader.BoundOrigin() != "" && origin == pairReader.BoundOrigin():
 				allow = origin
 			case r.URL.Path == config.GetPathPair() && isExtensionOrigin(origin):
 				allow = origin

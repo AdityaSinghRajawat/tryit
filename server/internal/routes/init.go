@@ -5,16 +5,17 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/redis/go-redis/v9"
 
 	"github.com/AdityaSinghRajawat/tryit/server/api"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
+	consentHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/consent"
 	executeHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/execute"
 	healthHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/health"
 	pairHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/pair"
 	parseHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/parse"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/integrations/ai"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/middlewares"
+	consentSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/consent"
 	executeSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/execute"
 	pairSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/pair"
 	parseSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/parse"
@@ -23,15 +24,19 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/validations"
 )
 
-func NewRoutes(redisClient *redis.Client) (http.Handler, error) {
+func NewRoutes() (http.Handler, error) {
 	pairService, err := pairSvc.NewPairService()
 	if err != nil {
 		return nil, err
 	}
 	secretService := secretSvc.NewSecretService()
+	consentService, cErr := consentSvc.NewConsentService(config.GetConsentFile())
+	if cErr != nil {
+		return nil, cErr
+	}
 
 	httpClient := utils.NewHttpClient("", config.GetExecTimeout())
-	executeService := executeSvc.NewExecuteService(secretService, httpClient)
+	executeService := executeSvc.NewExecuteService(secretService, consentService, httpClient)
 
 	validator, vErr := validations.NewSchemaValidator(api.Schema)
 	if vErr != nil {
@@ -41,13 +46,14 @@ func NewRoutes(redisClient *redis.Client) (http.Handler, error) {
 	if aiErr != nil {
 		return nil, aiErr
 	}
-	redisUtil := utils.NewRedisUtilManager(redisClient)
-	parseService := parseSvc.NewParseService(aiProvider, redisUtil, validator)
+	cache := utils.NewCache()
+	parseService := parseSvc.NewParseService(aiProvider, cache, validator)
 
 	healthH := healthHandler.NewHealthHandler(pairService)
 	pairH := pairHandler.NewPairHandler(pairService)
 	executeH := executeHandler.NewExecuteHandler(executeService)
 	parseH := parseHandler.NewParseHandler(parseService)
+	consentH := consentHandler.NewConsentHandler(consentService)
 
 	// Chain order matters: recover wraps everything, cors handles preflight,
 	// security enforces Host + Origin + bearer.
@@ -60,6 +66,7 @@ func NewRoutes(redisClient *redis.Client) (http.Handler, error) {
 	r.Post(config.GetRoutePathPair(), pairH.Post)
 	r.Post(config.GetRoutePathExecute(), executeH.Post)
 	r.Post(config.GetRoutePathParse(), parseH.Post)
+	r.Post(config.GetRoutePathConsent(), consentH.Post)
 
 	return r, nil
 }

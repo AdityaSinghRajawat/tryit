@@ -14,6 +14,6 @@ func (h *HealthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	utils.BuildAndSendResponse(r.Context(), w, healthType.Response{
 		Status:  "ok",
 		Version: Version,
-		Paired:  h.Pair.BoundOrigin() != "",
+		Paired:  h.PairReader.BoundOrigin() != "",
 	}, http.StatusOK)
 }

@@ -19,7 +19,7 @@ type PairReader interface {
 // SecurityMiddleware enforces IMPL §8.2: Host anti-DNS-rebinding, Origin must
 // equal bound, constant-time bearer, 409 not_paired before binding. /health
 // is fully exempt; /pair is exempt from token+origin (body token is the auth).
-func SecurityMiddleware(pair PairReader, hostHeader string) func(http.Handler) http.Handler {
+func SecurityMiddleware(pairReader PairReader, hostHeader string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodOptions {
@@ -37,7 +37,7 @@ func SecurityMiddleware(pair PairReader, hostHeader string) func(http.Handler) h
 				next.ServeHTTP(w, r)
 				return
 			}
-			bound := pair.BoundOrigin()
+			bound := pairReader.BoundOrigin()
 			if bound == "" {
 				utils.HandleCustomError(w, config.NewCustomError(
 					errors.New("server is not paired"),
@@ -53,7 +53,7 @@ func SecurityMiddleware(pair PairReader, hostHeader string) func(http.Handler) h
 				return
 			}
 			tok := bearerToken(r.Header.Get(config.GetHeaderAuthorization()))
-			if subtle.ConstantTimeCompare([]byte(tok), []byte(pair.Token())) != 1 {
+			if subtle.ConstantTimeCompare([]byte(tok), []byte(pairReader.Token())) != 1 {
 				utils.HandleCustomError(w, config.NewCustomError(
 					errors.New("invalid token"),
 					config.GetErrCodeUnauthorized(),
