@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net/url"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 	parseType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/parse"
+	profileType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/profile"
 	specType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/spec"
 )
 
@@ -80,4 +82,26 @@ func (s *ParseService) buildUserMessage(req parseType.Request) string {
 	return "PAGE_URL: " + req.PageURL + "\n" +
 		"ENDPOINT_DOC:\n" + req.ScopedMarkdown + "\n" +
 		"AUTHENTICATION_DOC (may be empty):\n" + req.AuthSectionMarkdown
+}
+
+// hostFromPageURL extracts the host (no scheme, no port) from req.PageURL.
+// Returns "" when PageURL is unparseable — the caller treats that as "no
+// profile match".
+func hostFromPageURL(pageURL string) string {
+	u, err := url.Parse(pageURL)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
+}
+
+// applyProfile overrides the AI-generated spec's auth + baseUrl with the
+// profile's known-good values and raises confidence to at least 0.9. Mutates
+// the spec in place.
+func applyProfile(spec *specType.RequestSpec, prof *profileType.SiteProfile) {
+	spec.BaseURL = prof.BaseURL
+	spec.Auth = prof.Auth
+	if spec.Confidence < 0.9 {
+		spec.Confidence = 0.9
+	}
 }

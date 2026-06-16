@@ -29,7 +29,14 @@ func (s *ParseService) Parse(
 	if cerr != nil {
 		return nil, cerr
 	}
-	resp := parseType.BuildResponse(*spec, parseType.SourceAI)
+
+	source := parseType.SourceAI
+	if prof := s.ProfileService.Lookup(hostFromPageURL(req.PageURL)); prof != nil {
+		applyProfile(spec, prof)
+		source = parseType.SourceProfile
+	}
+
+	resp := parseType.BuildResponse(*spec, source)
 	s.saveCachedResponse(key, resp)
 	return resp, nil
 }

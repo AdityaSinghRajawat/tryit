@@ -13,12 +13,14 @@ import (
 	healthHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/health"
 	pairHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/pair"
 	parseHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/parse"
+	profileHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/profile"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/integrations/ai"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/middlewares"
 	consentSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/consent"
 	executeSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/execute"
 	pairSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/pair"
 	parseSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/parse"
+	profileSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/profile"
 	secretSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/secret"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/validations"
@@ -34,11 +36,15 @@ func NewRoutes() (http.Handler, error) {
 	if cErr != nil {
 		return nil, cErr
 	}
+	profileService, pErr := profileSvc.NewProfileService(config.GetProfilesFile(), api.BuiltinProfiles)
+	if pErr != nil {
+		return nil, pErr
+	}
 
 	httpClient := utils.NewHttpClient("", config.GetExecTimeout())
 	executeService := executeSvc.NewExecuteService(secretService, consentService, httpClient)
 
-	validator, vErr := validations.NewSchemaValidator(api.Schema)
+	schemaValidator, vErr := validations.NewSchemaValidator(api.Schema)
 	if vErr != nil {
 		return nil, vErr
 	}
@@ -47,13 +53,14 @@ func NewRoutes() (http.Handler, error) {
 		return nil, aiErr
 	}
 	cache := utils.NewCache()
-	parseService := parseSvc.NewParseService(aiProvider, cache, validator)
+	parseService := parseSvc.NewParseService(aiProvider, cache, schemaValidator, profileService)
 
 	healthH := healthHandler.NewHealthHandler(pairService)
 	pairH := pairHandler.NewPairHandler(pairService)
 	executeH := executeHandler.NewExecuteHandler(executeService)
 	parseH := parseHandler.NewParseHandler(parseService)
 	consentH := consentHandler.NewConsentHandler(consentService)
+	profileH := profileHandler.NewProfileHandler(profileService)
 
 	// Chain order matters: recover wraps everything, cors handles preflight,
 	// security enforces Host + Origin + bearer.
@@ -67,6 +74,8 @@ func NewRoutes() (http.Handler, error) {
 	r.Post(config.GetRoutePathExecute(), executeH.Post)
 	r.Post(config.GetRoutePathParse(), parseH.Post)
 	r.Post(config.GetRoutePathConsent(), consentH.Post)
+	r.Get(config.GetRoutePathProfiles(), profileH.Get)
+	r.Post(config.GetRoutePathProfiles(), profileH.Post)
 
 	return r, nil
 }

@@ -27,6 +27,9 @@ type envConfig struct {
 	// Consent
 	consentFile string
 
+	// Profile (learned site profiles)
+	profilesFile string
+
 	// AI provider — switchable via AI_PROVIDER; each provider has its own key.
 	aiProvider      string
 	openaiAPIKey    string
@@ -61,8 +64,9 @@ func Init() error {
 		secretsFile:       getEnvWithDefault("TRYIT_SECRETS_FILE", defaultSecretsFile(homeDir)),
 		secretsPassphrase: getEnvWithDefault("TRYIT_SECRETS_PASSPHRASE", ""),
 
-		pairFile:    getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
-		consentFile: getEnvWithDefault("TRYIT_CONSENT_FILE", defaultConsentFile(homeDir)),
+		pairFile:     getEnvWithDefault("TRYIT_PAIR_FILE", defaultPairFile(homeDir)),
+		consentFile:  getEnvWithDefault("TRYIT_CONSENT_FILE", defaultConsentFile(homeDir)),
+		profilesFile: getEnvWithDefault("TRYIT_PROFILES_FILE", defaultProfilesFile(homeDir)),
 
 		aiProvider:      strings.ToLower(getEnvWithDefault("AI_PROVIDER", aiI.providerAnthropic)),
 		openaiAPIKey:    getEnvWithDefault("OPENAI_API_KEY", ""),
@@ -98,6 +102,13 @@ func defaultConsentFile(home string) string {
 		return ""
 	}
 	return home + "/.tryit/consent.json"
+}
+
+func defaultProfilesFile(home string) string {
+	if home == "" {
+		return ""
+	}
+	return home + "/.tryit/profiles.json"
 }
 
 // GetEnvByKey is the dynamic-key escape hatch — services should never touch
@@ -153,8 +164,9 @@ func GetSecretsBackend() string    { return envConfigI.secretsBackend }
 func GetSecretsFile() string       { return envConfigI.secretsFile }
 func GetSecretsPassphrase() string { return envConfigI.secretsPassphrase }
 
-func GetPairFile() string    { return envConfigI.pairFile }
-func GetConsentFile() string { return envConfigI.consentFile }
+func GetPairFile() string     { return envConfigI.pairFile }
+func GetConsentFile() string  { return envConfigI.consentFile }
+func GetProfilesFile() string { return envConfigI.profilesFile }
 
 func GetAIProvider() string      { return envConfigI.aiProvider }
 func GetOpenAIAPIKey() string    { return envConfigI.openaiAPIKey }
