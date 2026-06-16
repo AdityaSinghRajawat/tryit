@@ -115,6 +115,10 @@ func defaultProfilesFile(home string) string {
 // os.Getenv directly.
 func GetEnvByKey(key string) string { return os.Getenv(key) }
 
+// GetAllEnvVars is the enumeration escape hatch — services should never call
+// os.Environ directly. Each entry is "KEY=VALUE".
+func GetAllEnvVars() []string { return os.Environ() }
+
 func getEnvWithDefault(key, defaultValue string) string {
 	if v := GetEnvByKey(key); v != "" {
 		return v

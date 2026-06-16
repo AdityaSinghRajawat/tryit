@@ -3,7 +3,6 @@ package stores
 
 import (
 	"errors"
-	"os"
 	"strings"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
@@ -34,7 +33,7 @@ func (s *EnvStore) Get(name string) (*secretType.StoredSecret, error) {
 func (s *EnvStore) List() ([]*secretType.StoredSecret, error) {
 	collected := map[string]*secretType.StoredSecret{}
 
-	for _, kv := range os.Environ() {
+	for _, kv := range config.GetAllEnvVars() {
 		name, kind, value, ok := classifyEnvVar(kv)
 		if !ok {
 			continue
