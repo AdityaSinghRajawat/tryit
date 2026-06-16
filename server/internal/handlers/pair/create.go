@@ -8,7 +8,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *PairHandler) Post(w http.ResponseWriter, r *http.Request) {
+func (h *PairHandler) CreatePair(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	req := &pairType.Request{}
@@ -29,7 +29,7 @@ func (h *PairHandler) Post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	origin := r.Header.Get(config.GetHeaderOrigin())
-	bound, customErr := h.PairService.Verify(req.Token, origin)
+	bound, customErr := h.PairService.VerifyToken(req.Token, origin)
 	if customErr != nil {
 		utils.HandleCustomError(w, customErr)
 		return

@@ -9,7 +9,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (s *ConsentService) Granted(secret, host string) bool {
+func (s *ConsentService) IsConsentGranted(secret, host string) bool {
 	if secret == "" || host == "" {
 		return false
 	}
@@ -18,7 +18,7 @@ func (s *ConsentService) Granted(secret, host string) bool {
 	return s.findIndex(secret, host) >= 0
 }
 
-func (s *ConsentService) Grant(secret, host string) *config.CustomError {
+func (s *ConsentService) GrantConsent(secret, host string) *config.CustomError {
 	secret = strings.TrimSpace(secret)
 	host = strings.TrimSpace(host)
 	if secret == "" || host == "" {

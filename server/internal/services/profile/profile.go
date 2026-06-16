@@ -10,7 +10,7 @@ import (
 
 // Lookup returns the profile for host, preferring learned over builtin.
 // Returns nil when no profile matches.
-func (s *ProfileService) Lookup(host string) *profileType.SiteProfile {
+func (s *ProfileService) LookupProfile(host string) *profileType.SiteProfile {
 	host = strings.TrimSpace(host)
 	if host == "" {
 		return nil
@@ -30,7 +30,7 @@ func (s *ProfileService) Lookup(host string) *profileType.SiteProfile {
 
 // Learn persists p as a learned profile. Replaces an existing learned entry
 // for the same host; never modifies builtin.
-func (s *ProfileService) Learn(p *profileType.SiteProfile) *config.CustomError {
+func (s *ProfileService) LearnProfile(p *profileType.SiteProfile) *config.CustomError {
 	if err := p.Validate(); err != nil {
 		return config.NewCustomError(err, config.GetErrCodeInvalidRequest())
 	}
@@ -52,7 +52,7 @@ func (s *ProfileService) Learn(p *profileType.SiteProfile) *config.CustomError {
 // List returns the union of learned + builtin (learned overrides builtin for
 // the same host). Stable iteration order: learned first, then builtin minus
 // any host already covered by a learned entry.
-func (s *ProfileService) List() []profileType.SiteProfile {
+func (s *ProfileService) ListProfiles() []profileType.SiteProfile {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := make([]profileType.SiteProfile, 0, len(s.learned)+len(s.builtin))

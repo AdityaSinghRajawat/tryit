@@ -46,7 +46,7 @@ func (s *ConsentService) findIndex(secret, host string) int {
 	return -1
 }
 
-func (s *ConsentService) List() []consentType.Record {
+func (s *ConsentService) ListConsents() []consentType.Record {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

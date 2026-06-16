@@ -27,7 +27,7 @@ func (s *ExecuteService) checkConsent(
 				stored = v
 			}
 		}
-		if !s.ConsentService.Granted(stored, host) {
+		if !s.ConsentService.IsConsentGranted(stored, host) {
 			return &executeType.ConsentRequired{Secret: stored, Host: host}
 		}
 	}

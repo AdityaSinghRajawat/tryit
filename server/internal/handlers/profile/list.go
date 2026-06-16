@@ -7,11 +7,11 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *ProfileHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandler) ListProfiles(w http.ResponseWriter, r *http.Request) {
 	utils.BuildAndSendResponse(
 		r.Context(),
 		w,
-		profileType.ListResponse{Profiles: h.ProfileService.List()},
+		profileType.ListResponse{Profiles: h.ProfileService.ListProfiles()},
 		http.StatusOK,
 	)
 }

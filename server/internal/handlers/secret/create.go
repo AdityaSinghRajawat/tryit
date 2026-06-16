@@ -1,17 +1,17 @@
-package profile
+package secret
 
 import (
 	"net/http"
 
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
-	profileType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/profile"
+	secretType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/secret"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
+func (h *SecretHandler) CreateSecret(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	req := &profileType.SiteProfile{}
+	req := &secretType.CreateRequest{}
 	if err := utils.DecodeJSONRequest(r, req); err != nil {
 		utils.HandleCustomError(
 			w,
@@ -28,15 +28,15 @@ func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if customErr := h.ProfileService.LearnProfile(req); customErr != nil {
-		utils.HandleCustomError(w, customErr)
+	if cerr := h.SecretService.CreateSecret(req.ToRecord()); cerr != nil {
+		utils.HandleCustomError(w, cerr)
 		return
 	}
 
 	utils.BuildAndSendResponse(
 		ctx,
 		w,
-		profileType.CreateResponse{Host: req.Host},
-		http.StatusOK,
+		secretType.CreateResponse{Name: req.Name},
+		http.StatusCreated,
 	)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *ExecuteHandler) Post(w http.ResponseWriter, r *http.Request) {
+func (h *ExecuteHandler) ExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	req := &executeType.Request{}
@@ -28,7 +28,7 @@ func (h *ExecuteHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, customErr := h.ExecuteService.Execute(ctx, req.RequestSpec, req.SecretRefs)
+	resp, customErr := h.ExecuteService.ExecuteCommand(ctx, req.RequestSpec, req.SecretRefs)
 	if customErr != nil {
 		utils.HandleCustomError(w, customErr)
 		return

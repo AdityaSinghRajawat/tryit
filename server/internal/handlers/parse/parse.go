@@ -8,7 +8,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *ParseHandler) Post(w http.ResponseWriter, r *http.Request) {
+func (h *ParseHandler) ParseCommand(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	req := &parseType.Request{}
@@ -28,7 +28,7 @@ func (h *ParseHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, customErr := h.ParseService.Parse(ctx, *req)
+	resp, customErr := h.ParseService.ParseCommand(ctx, *req)
 	if customErr != nil {
 		utils.HandleCustomError(w, customErr)
 		return

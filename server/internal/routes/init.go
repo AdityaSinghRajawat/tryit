@@ -14,6 +14,7 @@ import (
 	pairHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/pair"
 	parseHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/parse"
 	profileHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/profile"
+	secretHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/secret"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/integrations/ai"
 	"github.com/AdityaSinghRajawat/tryit/server/internal/middlewares"
 	consentSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/consent"
@@ -31,7 +32,11 @@ func NewRoutes() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	secretService := secretSvc.NewSecretService()
+	secretStore, sErr := secretSvc.NewSecretStore()
+	if sErr != nil {
+		return nil, sErr
+	}
+	secretService := secretSvc.NewSecretService(secretStore)
 	consentService, cErr := consentSvc.NewConsentService(config.GetConsentFile())
 	if cErr != nil {
 		return nil, cErr
@@ -69,6 +74,7 @@ func NewRoutes() (http.Handler, error) {
 	parseH := parseHandler.NewParseHandler(parseService)
 	consentH := consentHandler.NewConsentHandler(consentService)
 	profileH := profileHandler.NewProfileHandler(profileService)
+	secretH := secretHandler.NewSecretHandler(secretService)
 
 	// Chain order matters: recover wraps everything, cors handles preflight,
 	// security enforces Host + Origin + bearer.
@@ -77,13 +83,16 @@ func NewRoutes() (http.Handler, error) {
 	r.Use(middlewares.CORSMiddleware(pairService))
 	r.Use(middlewares.SecurityMiddleware(pairService, config.GetHostHeader()))
 
-	r.Get(config.GetRoutePathHealth(), healthH.Get)
-	r.Post(config.GetRoutePathPair(), pairH.Post)
-	r.Post(config.GetRoutePathExecute(), executeH.Post)
-	r.Post(config.GetRoutePathParse(), parseH.Post)
-	r.Post(config.GetRoutePathConsent(), consentH.Post)
-	r.Get(config.GetRoutePathProfiles(), profileH.Get)
-	r.Post(config.GetRoutePathProfiles(), profileH.Post)
+	r.Get(config.GetRoutePathHealth(), healthH.CheckHealth)
+	r.Post(config.GetRoutePathPair(), pairH.CreatePair)
+	r.Post(config.GetRoutePathExecute(), executeH.ExecuteCommand)
+	r.Post(config.GetRoutePathParse(), parseH.ParseCommand)
+	r.Post(config.GetRoutePathConsent(), consentH.CreateConsent)
+	r.Get(config.GetRoutePathProfiles(), profileH.ListProfiles)
+	r.Post(config.GetRoutePathProfiles(), profileH.CreateProfile)
+	r.Get(config.GetRoutePathSecrets(), secretH.ListSecrets)
+	r.Post(config.GetRoutePathSecrets(), secretH.CreateSecret)
+	r.Delete(config.GetRoutePathSecretsByName(), secretH.DeleteSecret)
 
 	return r, nil
 }

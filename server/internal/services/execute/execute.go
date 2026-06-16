@@ -9,7 +9,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (s *ExecuteService) Execute(
+func (s *ExecuteService) ExecuteCommand(
 	ctx context.Context,
 	spec specType.RequestSpec,
 	refs map[string]string,

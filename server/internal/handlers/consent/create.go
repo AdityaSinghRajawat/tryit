@@ -8,7 +8,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/utils"
 )
 
-func (h *ConsentHandler) Post(w http.ResponseWriter, r *http.Request) {
+func (h *ConsentHandler) CreateConsent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	req := &consentType.Request{}
@@ -28,8 +28,8 @@ func (h *ConsentHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cerr := h.ConsentService.Grant(req.Secret, req.Host); cerr != nil {
-		utils.HandleCustomError(w, cerr)
+	if customErr := h.ConsentService.GrantConsent(req.Secret, req.Host); customErr != nil {
+		utils.HandleCustomError(w, customErr)
 		return
 	}
 	utils.BuildAndSendResponse(ctx, w, consentType.Response{Granted: true}, http.StatusOK)

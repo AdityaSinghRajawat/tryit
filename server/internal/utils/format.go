@@ -1,6 +1,14 @@
 package utils
 
-import "strings"
+import (
+	"encoding/base64"
+	"strings"
+)
+
+// BasicAuthValue returns base64(user:pass), the value half of a Basic-auth header.
+func BasicAuthValue(user, pass string) string {
+	return base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
+}
 
 // Mask returns "••••XXXX" with the last 4 chars of v, or "••••" if shorter.
 func Mask(v string) string {

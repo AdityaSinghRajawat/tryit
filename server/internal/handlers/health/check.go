@@ -10,7 +10,7 @@ import (
 // Version is set at build time via -ldflags.
 var Version = "dev"
 
-func (h *HealthHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (h *HealthHandler) CheckHealth(w http.ResponseWriter, r *http.Request) {
 	utils.BuildAndSendResponse(r.Context(), w, healthType.Response{
 		Status:  "ok",
 		Version: Version,

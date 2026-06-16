@@ -7,7 +7,7 @@ import (
 	parseType "github.com/AdityaSinghRajawat/tryit/server/internal/customTypes/parse"
 )
 
-func (s *ParseService) Parse(
+func (s *ParseService) ParseCommand(
 	ctx context.Context,
 	req parseType.Request,
 ) (*parseType.Response, *config.CustomError) {
@@ -31,7 +31,7 @@ func (s *ParseService) Parse(
 	}
 
 	source := parseType.SourceAI
-	if prof := s.ProfileService.Lookup(hostFromPageURL(req.PageURL)); prof != nil {
+	if prof := s.ProfileService.LookupProfile(hostFromPageURL(req.PageURL)); prof != nil {
 		applyProfile(spec, prof)
 		source = parseType.SourceProfile
 	}
