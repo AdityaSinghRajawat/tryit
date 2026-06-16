@@ -38,5 +38,6 @@ func (s *ParseService) ParseCommand(
 
 	resp := parseType.BuildResponse(*spec, source)
 	s.saveCachedResponse(key, resp)
+
 	return resp, nil
 }

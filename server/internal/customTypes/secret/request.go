@@ -19,15 +19,6 @@ type CreateRequest struct {
 	Password string `json:"password,omitempty"`
 }
 
-type CreateResponse struct {
-	Name string `json:"name"`
-}
-
-type DeleteResponse struct {
-	Name    string `json:"name"`
-	Deleted bool   `json:"deleted"`
-}
-
 func (r *CreateRequest) Validate() error {
 	if err := validator.New().Struct(r); err != nil {
 		return fmt.Errorf("secret request validation failed: %w", err)

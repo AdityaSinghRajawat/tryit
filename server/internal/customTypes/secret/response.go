@@ -10,3 +10,12 @@ type Info struct {
 type ListResponse struct {
 	Secrets []Info `json:"secrets"`
 }
+
+type CreateResponse struct {
+	Name string `json:"name"`
+}
+
+type DeleteResponse struct {
+	Name    string `json:"name"`
+	Deleted bool   `json:"deleted"`
+}
