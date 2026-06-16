@@ -8,12 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 )
 
 // Cache is an LRU with optional disk-backed persistence (IMPL §9.5).
-// Construct via NewCache; inject into services that need it.
 type Cache struct {
 	mu      sync.Mutex
 	ll      *list.List
@@ -30,14 +27,16 @@ type cacheEntry struct {
 	expiresAt time.Time
 }
 
-func NewCache() *Cache {
+// NewCache builds a Cache with the supplied policy. diskDir="" disables disk
+// persistence; enabled=false makes Get/Set no-ops.
+func NewCache(capacity int, ttl time.Duration, diskDir string, enabled bool) *Cache {
 	c := &Cache{
 		ll:      list.New(),
 		items:   make(map[string]*list.Element),
-		cap:     config.GetCacheLRUCapacity(),
-		ttl:     config.GetCacheTTL(),
-		diskDir: config.GetCacheDiskDir(),
-		enabled: config.GetCacheEnabled(),
+		cap:     capacity,
+		ttl:     ttl,
+		diskDir: diskDir,
+		enabled: enabled,
 	}
 	if c.enabled && c.diskDir != "" {
 		_ = os.MkdirAll(c.diskDir, 0o700)

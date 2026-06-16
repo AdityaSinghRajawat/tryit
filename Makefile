@@ -20,8 +20,12 @@ server-dev: ## Run the Go server (prints pairing token on first start)
 server-build: ## Build the Go server binary into server/tryit
 	cd $(SERVER_DIR) && go build -o tryit ./cmd
 
-server-test: ## Run Go unit tests
-	cd $(SERVER_DIR) && go test ./...
+server-test: ## Run black-box tests under server/tests/ (gitignored — generate locally as needed)
+	@if [ -d $(SERVER_DIR)/tests ]; then \
+		cd $(SERVER_DIR) && go test ./tests/...; \
+	else \
+		echo "server/tests/ is not present (gitignored). Skipping."; \
+	fi
 
 server-lint: ## Run golangci-lint (install via brew: brew install golangci-lint)
 	cd $(SERVER_DIR) && golangci-lint run
@@ -36,7 +40,7 @@ ext-build: ## One-shot extension build
 	cd $(EXT_DIR) && npm run build
 
 contract-check: ## Round-trip a fixture through the Go struct + JSON schema (D4)
-	cd $(SERVER_DIR) && go test ./api/... -run TestContractRoundTrip -v
+	cd $(SERVER_DIR) && go test ./tests/api/... -run TestContractRoundTrip -v
 
 reset-pairing: ## Forget the pairing token and bound origin
 	rm -f $(HOME)/.tryit/pair.json

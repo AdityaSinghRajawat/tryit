@@ -30,3 +30,6 @@ extension/.output/
 # Generated text from docx (kept locally for reference)
 tryit-SPEC.txt
 tryit-IMPL.txt
+
+# Local-only tests (black-box, run via `make server-test`; not part of the repo)
+/server/tests/

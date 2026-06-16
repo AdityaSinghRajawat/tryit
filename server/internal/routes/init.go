@@ -27,7 +27,7 @@ import (
 )
 
 func NewRoutes() (http.Handler, error) {
-	pairService, err := pairSvc.NewPairService()
+	pairService, err := pairSvc.NewPairService(config.GetPairFile())
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,10 @@ func NewRoutes() (http.Handler, error) {
 	if cErr != nil {
 		return nil, cErr
 	}
-	profileService, pErr := profileSvc.NewProfileService(config.GetProfilesFile(), api.BuiltinProfiles)
+	profileService, pErr := profileSvc.NewProfileService(
+		config.GetProfilesFile(),
+		api.BuiltinProfiles,
+	)
 	if pErr != nil {
 		return nil, pErr
 	}
@@ -52,7 +55,12 @@ func NewRoutes() (http.Handler, error) {
 	if aiErr != nil {
 		return nil, aiErr
 	}
-	cache := utils.NewCache()
+	cache := utils.NewCache(
+		config.GetCacheLRUCapacity(),
+		config.GetCacheTTL(),
+		config.GetCacheDiskDir(),
+		config.GetCacheEnabled(),
+	)
 	parseService := parseSvc.NewParseService(aiProvider, cache, schemaValidator, profileService)
 
 	healthH := healthHandler.NewHealthHandler(pairService)

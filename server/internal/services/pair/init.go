@@ -5,8 +5,6 @@ package pair
 import (
 	"errors"
 	"sync"
-
-	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 )
 
 type pairFile struct {
@@ -22,10 +20,9 @@ type PairService struct {
 
 // NewPairService opens (or creates) the pair file and prints the token to
 // stdout once on construction.
-func NewPairService() (*PairService, error) {
-	path := config.GetPairFile()
+func NewPairService(path string) (*PairService, error) {
 	if path == "" {
-		return nil, errors.New("pair store path is empty (set TRYIT_PAIR_FILE or $HOME)")
+		return nil, errors.New("pair store path is empty")
 	}
 	s := &PairService{path: path}
 	fresh, err := s.load()
