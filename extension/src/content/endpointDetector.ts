@@ -1,13 +1,18 @@
-// Phase 1: only Swagger UI is wired up here. Phase 2 plugs in Redoc, Mintlify,
-// and a generic heuristic detector.
+// Framework detection. Order of precedence: swagger (deterministic DOM,
+// produces a client-side hint) → redoc (deterministic DOM, server cascade)
+// → generic (heading+codeblock heuristic, server cascade).
 
 import * as swagger from "./frameworks/swagger";
+import * as redoc from "./frameworks/redoc";
+import * as generic from "./frameworks/generic";
 
-export type Framework = "swagger" | "none";
+export type Framework = "swagger" | "redoc" | "generic" | "none";
 
 export function detect(): Framework {
   if (swagger.isSwaggerUI()) return "swagger";
+  if (redoc.isRedoc()) return "redoc";
+  if (generic.findEndpointBlocks().length > 0) return "generic";
   return "none";
 }
 
-export const frameworks = { swagger };
+export const frameworks = { swagger, redoc, generic };

@@ -1,47 +1,77 @@
 // Content script orchestrator (isolated world).
 //
-// Phase 1: detect Swagger UI → for each .opblock, inject a closed-shadow-DOM
-// "Try it" button → on click, build a RequestSpec hint client-side → post to
-// background, which opens the side panel and stashes the message for the
-// panel to read.
+// Swagger UI → client-side hint (Phase 1 fast path; no AI round-trip).
+// Redoc / generic → scopedMarkdown + auth-section markdown (Phase 2 cascade).
+// The background opens the side panel and forwards the message verbatim.
 
-import { detect, frameworks } from "./endpointDetector";
+import { detect, frameworks, type Framework } from "./endpointDetector";
 import { injectButton } from "./buttonInjector";
 import type { ContentMsg } from "../shared/messages";
 
-function main(): void {
-  const framework = detect();
-  if (framework === "none") return;
+let activeFramework: Framework = "none";
 
-  // Initial pass.
+function main(): void {
+  activeFramework = detect();
+  if (activeFramework === "none") return;
+
   scanAndInject();
 
-  // Swagger UI lazy-renders opblocks on group toggle; observe.
+  // Doc sites lazy-render (Swagger group toggle, Redoc lazy ops, generic SPA
+  // routing) — observe and re-scan.
   const obs = new MutationObserver(() => scanAndInject());
   obs.observe(document.body, { subtree: true, childList: true });
 }
 
 function scanAndInject(): void {
-  for (const block of frameworks.swagger.findEndpointBlocks()) {
-    const anchor = frameworks.swagger.findInjectionAnchor(block);
-    if (!anchor) continue;
-    injectButton(anchor, () => onTryIt(block));
+  switch (activeFramework) {
+    case "swagger":
+      for (const block of frameworks.swagger.findEndpointBlocks()) {
+        const anchor = frameworks.swagger.findInjectionAnchor(block);
+        if (anchor) injectButton(anchor, () => onSwaggerTryIt(block));
+      }
+      return;
+    case "redoc":
+      for (const block of frameworks.redoc.findEndpointBlocks()) {
+        const anchor = frameworks.redoc.findInjectionAnchor(block);
+        if (anchor) injectButton(anchor, () => onProseTryIt(block, "redoc"));
+      }
+      return;
+    case "generic":
+      for (const block of frameworks.generic.findEndpointBlocks()) {
+        const anchor = frameworks.generic.findInjectionAnchor(block);
+        if (anchor) injectButton(anchor, () => onProseTryIt(block, "generic"));
+      }
+      return;
   }
 }
 
-function onTryIt(block: HTMLElement): void {
+function onSwaggerTryIt(block: HTMLElement): void {
   const spec = frameworks.swagger.buildRequestSpec(block);
   if (!spec) {
     console.warn("tryit: could not extract a RequestSpec from this opblock");
     return;
   }
-  const msg: ContentMsg = {
+  send({
     kind: "tryit",
     pageUrl: window.location.href,
     scopedMarkdown: "",
     framework: "swagger",
     structuredHint: { requestSpec: spec },
-  };
+  });
+}
+
+function onProseTryIt(block: HTMLElement, framework: "redoc" | "generic"): void {
+  const scope = frameworks[framework].scopeMarkdown(block);
+  send({
+    kind: "tryit",
+    pageUrl: window.location.href,
+    scopedMarkdown: scope.scopedMarkdown,
+    authSectionMarkdown: scope.authSectionMarkdown || undefined,
+    framework,
+  });
+}
+
+function send(msg: ContentMsg): void {
   chrome.runtime.sendMessage(msg).catch((err) => {
     console.warn("tryit: sendMessage failed", err);
   });

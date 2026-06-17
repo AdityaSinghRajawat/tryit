@@ -9,6 +9,7 @@ type routeConsts struct {
 	pathProfiles      string
 	pathSecrets       string
 	pathSecretsByName string
+	pathGenerate      string
 }
 
 var routeI = &routeConsts{
@@ -20,6 +21,7 @@ var routeI = &routeConsts{
 	pathProfiles:      "/profiles",
 	pathSecrets:       "/secrets",
 	pathSecretsByName: "/secrets/{name}",
+	pathGenerate:      "/generate",
 }
 
 func GetRoutePathHealth() string        { return routeI.pathHealth }
@@ -30,3 +32,4 @@ func GetRoutePathConsent() string       { return routeI.pathConsent }
 func GetRoutePathProfiles() string      { return routeI.pathProfiles }
 func GetRoutePathSecrets() string       { return routeI.pathSecrets }
 func GetRoutePathSecretsByName() string { return routeI.pathSecretsByName }
+func GetRoutePathGenerate() string      { return routeI.pathGenerate }

@@ -1,0 +1,54 @@
+{{- /* python: requests-based snippet. Secrets read via os.environ. */ -}}
+import os
+import requests
+{{if .EnvVars}}
+# Required env vars (set before running):
+{{range .EnvVars}}#   export {{.}}=...
+{{end}}{{end -}}
+url = "{{.URL}}"
+
+headers = {
+{{- range .Headers}}
+    "{{.Name}}": "{{.Value}}",
+{{- end}}
+{{- if and .AuthHeaderName (ne .AuthType "basic")}}
+    "{{.AuthHeaderName}}": f"{{.AuthHeaderPrefix}}{os.environ['{{.AuthHeaderEnv}}']}",
+{{- end}}
+{{- if eq .BodyEnc "json"}}
+    "Content-Type": "{{.ContentType}}",
+{{- end}}
+}
+{{- if eq .BodyEnc "json"}}
+
+payload = {{.BodyJSON}}
+{{- end}}
+{{- if or (eq .BodyEnc "form") (eq .BodyEnc "multipart")}}
+
+data = {
+{{- range .BodyForm}}
+    "{{.Name}}": "{{.Value}}",
+{{- end}}
+}
+{{- end}}
+
+response = requests.request(
+    "{{.Method}}",
+    url,
+    headers=headers,
+{{- if eq .AuthType "basic"}}
+    auth=(os.environ["{{.BasicUserEnv}}"], os.environ["{{.BasicPassEnv}}"]),
+{{- end}}
+{{- if eq .BodyEnc "json"}}
+    json=payload,
+{{- end}}
+{{- if eq .BodyEnc "form"}}
+    data=data,
+{{- end}}
+{{- if eq .BodyEnc "multipart"}}
+    files=data,
+{{- end}}
+{{- if eq .BodyEnc "raw"}}
+    data="""{{.BodyRaw}}""",
+{{- end}}
+)
+print(response.status_code, response.text)

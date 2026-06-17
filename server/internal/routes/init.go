@@ -10,6 +10,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 	consentHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/consent"
 	executeHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/execute"
+	generateHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/generate"
 	healthHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/health"
 	pairHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/pair"
 	parseHandler "github.com/AdityaSinghRajawat/tryit/server/internal/handlers/parse"
@@ -19,6 +20,7 @@ import (
 	"github.com/AdityaSinghRajawat/tryit/server/internal/middlewares"
 	consentSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/consent"
 	executeSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/execute"
+	generateSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/generate"
 	pairSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/pair"
 	parseSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/parse"
 	profileSvc "github.com/AdityaSinghRajawat/tryit/server/internal/services/profile"
@@ -68,6 +70,11 @@ func NewRoutes() (http.Handler, error) {
 	)
 	parseService := parseSvc.NewParseService(aiProvider, cache, schemaValidator, profileService)
 
+	codegenService, gErr := generateSvc.NewCodegenService()
+	if gErr != nil {
+		return nil, gErr
+	}
+
 	healthH := healthHandler.NewHealthHandler(pairService)
 	pairH := pairHandler.NewPairHandler(pairService)
 	executeH := executeHandler.NewExecuteHandler(executeService)
@@ -75,6 +82,7 @@ func NewRoutes() (http.Handler, error) {
 	consentH := consentHandler.NewConsentHandler(consentService)
 	profileH := profileHandler.NewProfileHandler(profileService)
 	secretH := secretHandler.NewSecretHandler(secretService)
+	generateH := generateHandler.NewGenerateHandler(codegenService)
 
 	// Chain order matters: recover wraps everything, cors handles preflight,
 	// security enforces Host + Origin + bearer.
@@ -93,6 +101,7 @@ func NewRoutes() (http.Handler, error) {
 	r.Get(config.GetRoutePathSecrets(), secretH.ListSecrets)
 	r.Post(config.GetRoutePathSecrets(), secretH.CreateSecret)
 	r.Delete(config.GetRoutePathSecretsByName(), secretH.DeleteSecret)
+	r.Post(config.GetRoutePathGenerate(), generateH.GenerateCode)
 
 	return r, nil
 }

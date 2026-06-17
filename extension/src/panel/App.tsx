@@ -2,39 +2,64 @@ import { useCallback, useEffect, useState } from "react";
 import { PairDialog } from "./components/PairDialog";
 import { RequestEditor } from "./components/RequestEditor";
 import { ResponseView } from "./components/ResponseView";
+import { ConfirmBar } from "./components/ConfirmBar";
+import { SecretMapper } from "./components/SecretMapper";
+import { ConsentDialog } from "./components/ConsentDialog";
+import { CodeGenView } from "./components/CodeGenView";
 import { ServerError, serverClient } from "./serverClient";
-import {
-  STORAGE_KEY_LAST_TRIGGER,
-} from "../shared/constants";
+import { STORAGE_KEY_LAST_TRIGGER } from "../shared/constants";
+import { extractSecretRefs, hostOf } from "../shared/secretRefs";
 import type { ContentMsg, Phase1Hint } from "../shared/messages";
-import type { ExecuteResponse, RequestSpec } from "../shared/types";
+import type {
+  ExecuteResponse,
+  ParseRequest,
+  ParseResponse,
+  RequestSpec,
+} from "../shared/types";
 
 type Stage =
   | { kind: "boot" }
   | { kind: "pair-needed" }
   | { kind: "idle" }
-  | { kind: "request"; spec: RequestSpec }
-  | { kind: "sent"; resp: ExecuteResponse; spec: RequestSpec };
+  | { kind: "parsing"; parseInput: ParseRequest }
+  | { kind: "request"; spec: RequestSpec; parse?: ParseResponse; parseInput?: ParseRequest }
+  | { kind: "mapping"; spec: RequestSpec; parse?: ParseResponse; parseInput?: ParseRequest }
+  | {
+      kind: "consent";
+      spec: RequestSpec;
+      refs: Record<string, string>;
+      required: { secret: string; host: string };
+      parseInput?: ParseRequest;
+    }
+  | { kind: "sent"; spec: RequestSpec; resp: ExecuteResponse; parseInput?: ParseRequest };
 
 export function App() {
   const [stage, setStage] = useState<Stage>({ kind: "boot" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshFromTrigger = useCallback(async () => {
+  const consumeTrigger = useCallback(async () => {
     const r = await chrome.storage.local.get(STORAGE_KEY_LAST_TRIGGER);
     const msg = r[STORAGE_KEY_LAST_TRIGGER] as ContentMsg | undefined;
-    if (msg && msg.kind === "tryit") {
-      const hint = msg.structuredHint as Phase1Hint | undefined;
-      if (hint?.requestSpec) {
-        setStage({ kind: "request", spec: hint.requestSpec });
-        // Clear the trigger so reload doesn't reuse stale state.
-        await chrome.storage.local.remove(STORAGE_KEY_LAST_TRIGGER);
-      }
+    if (!msg || msg.kind !== "tryit") return;
+    await chrome.storage.local.remove(STORAGE_KEY_LAST_TRIGGER);
+
+    const hint = msg.structuredHint as Phase1Hint | undefined;
+    if (hint?.requestSpec) {
+      setStage({ kind: "request", spec: hint.requestSpec });
+      return;
+    }
+    if (msg.scopedMarkdown) {
+      const parseInput: ParseRequest = {
+        pageUrl: msg.pageUrl,
+        scopedMarkdown: msg.scopedMarkdown,
+        authSectionMarkdown: msg.authSectionMarkdown,
+        framework: msg.framework,
+      };
+      setStage({ kind: "parsing", parseInput });
     }
   }, []);
 
-  // Boot: check pairing, then load any pending trigger.
   useEffect(() => {
     (async () => {
       const has = await serverClient.hasToken();
@@ -45,38 +70,105 @@ export function App() {
       try {
         await serverClient.health();
       } catch (e) {
-        // Server unreachable: still allow the panel to render the editor;
-        // sending will surface the error.
         console.warn("health check failed:", e);
       }
       setStage({ kind: "idle" });
-      await refreshFromTrigger();
+      await consumeTrigger();
     })();
-  }, [refreshFromTrigger]);
+  }, [consumeTrigger]);
 
-  // Listen for new triggers while open.
   useEffect(() => {
     const onChange = (changes: Record<string, chrome.storage.StorageChange>) => {
       if (STORAGE_KEY_LAST_TRIGGER in changes && changes[STORAGE_KEY_LAST_TRIGGER].newValue) {
-        refreshFromTrigger();
+        consumeTrigger();
       }
     };
     chrome.storage.local.onChanged.addListener(onChange);
     return () => chrome.storage.local.onChanged.removeListener(onChange);
-  }, [refreshFromTrigger]);
+  }, [consumeTrigger]);
 
-  const send = async (spec: RequestSpec) => {
+  // Parse cascade: parsing → request.
+  useEffect(() => {
+    if (stage.kind !== "parsing") return;
+    let cancelled = false;
+    (async () => {
+      setError(null);
+      try {
+        const parse = await serverClient.parse(stage.parseInput);
+        if (cancelled) return;
+        setStage({
+          kind: "request",
+          spec: parse.requestSpec,
+          parse,
+          parseInput: stage.parseInput,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setError(formatError(err));
+        setStage({ kind: "idle" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stage]);
+
+  const onSendRequest = (spec: RequestSpec) => {
+    if (stage.kind !== "request") return;
+    if (extractSecretRefs(spec).length === 0) {
+      void doExecute(spec, {});
+      return;
+    }
+    setStage({ ...stage, kind: "mapping", spec });
+  };
+
+  const onMappingReady = (refs: Record<string, string>) => {
+    if (stage.kind !== "mapping") return;
+    void doExecute(stage.spec, refs);
+  };
+
+  const onConsentGranted = () => {
+    if (stage.kind !== "consent") return;
+    void doExecute(stage.spec, stage.refs);
+  };
+
+  const doExecute = async (spec: RequestSpec, refs: Record<string, string>) => {
     setBusy(true);
     setError(null);
     try {
-      const resp = await serverClient.execute({ requestSpec: spec });
-      setStage({ kind: "sent", resp, spec });
-    } catch (e) {
-      const msg = e instanceof ServerError ? `${e.code}: ${e.message}` : String(e);
-      setError(msg);
+      const resp = await serverClient.execute({ requestSpec: spec, secretRefs: refs });
+      if (resp.consentRequired) {
+        setStage((prev) => ({
+          kind: "consent",
+          spec,
+          refs,
+          required: resp.consentRequired!,
+          parseInput: anyParseInput(prev),
+        }));
+        return;
+      }
+      setStage((prev) => ({
+        kind: "sent",
+        spec,
+        resp,
+        parseInput: anyParseInput(prev),
+      }));
+    } catch (err) {
+      setError(formatError(err));
     } finally {
       setBusy(false);
     }
+  };
+
+  const reparse = () => {
+    const parseInput = anyParseInput(stage);
+    if (!parseInput) return;
+    setStage({ kind: "parsing", parseInput: { ...parseInput, force: true } });
+  };
+
+  const dismissConfirmBar = () => {
+    if (stage.kind !== "request") return;
+    setStage({ ...stage, parse: undefined });
   };
 
   return (
@@ -84,7 +176,7 @@ export function App() {
       <Style />
       <header className="topbar">
         <strong>tryit</strong>
-        <span className="phase">Phase 1</span>
+        <span className="phase">Phase 3</span>
       </header>
 
       {stage.kind === "boot" && <p className="loading">Loading…</p>}
@@ -96,27 +188,92 @@ export function App() {
       {stage.kind === "idle" && (
         <div className="idle">
           <p>
-            Visit a Swagger UI page (e.g. <code>petstore.swagger.io</code>) and
-            click the <strong>Try it</strong> button next to an endpoint to
-            load it here.
+            Open an API docs page (Swagger, Redoc, or a prose doc) and click the
+            <strong> Try it</strong> button next to an endpoint.
           </p>
         </div>
       )}
 
+      {stage.kind === "parsing" && (
+        <p className="loading">Parsing endpoint with the AI cascade…</p>
+      )}
+
       {stage.kind === "request" && (
-        <RequestEditor initial={stage.spec} busy={busy} onSend={send} />
+        <>
+          {stage.parse?.needsConfirmation && (
+            <ConfirmBar
+              source={stage.parse.source}
+              confidence={stage.parse.confidence}
+              notes={stage.spec.notes}
+              onConfirm={dismissConfirmBar}
+              onReparse={reparse}
+            />
+          )}
+          <RequestEditor initial={stage.spec} busy={busy} onSend={onSendRequest} />
+          <HostBadge baseUrl={stage.spec.baseUrl} />
+        </>
+      )}
+
+      {stage.kind === "mapping" && (
+        <SecretMapper
+          spec={stage.spec}
+          onReady={onMappingReady}
+          onCancel={() =>
+            setStage({
+              kind: "request",
+              spec: stage.spec,
+              parse: stage.parse,
+              parseInput: stage.parseInput,
+            })
+          }
+        />
+      )}
+
+      {stage.kind === "consent" && (
+        <ConsentDialog
+          secret={stage.required.secret}
+          host={stage.required.host}
+          onGranted={onConsentGranted}
+          onCancel={() =>
+            setStage({
+              kind: "request",
+              spec: stage.spec,
+              parseInput: stage.parseInput,
+            })
+          }
+        />
       )}
 
       {stage.kind === "sent" && (
         <>
-          <RequestEditor initial={stage.spec} busy={busy} onSend={send} />
+          <RequestEditor initial={stage.spec} busy={busy} onSend={onSendRequest} />
           <ResponseView resp={stage.resp} />
+          <CodeGenView spec={stage.spec} />
         </>
       )}
 
       {error && <p className="error">{error}</p>}
     </div>
   );
+}
+
+function HostBadge({ baseUrl }: { baseUrl: string }) {
+  const host = hostOf(baseUrl);
+  if (!host) return null;
+  return (
+    <p className="muted">
+      Target host: <code>{host}</code>
+    </p>
+  );
+}
+
+function anyParseInput(s: Stage): ParseRequest | undefined {
+  if ("parseInput" in s) return s.parseInput;
+  return undefined;
+}
+
+function formatError(err: unknown): string {
+  return err instanceof ServerError ? `${err.code}: ${err.message}` : String(err);
 }
 
 function Style() {
@@ -128,6 +285,7 @@ function Style() {
       .topbar .phase { font-size: 11px; color:#888; }
       .dialog h2 { margin:0 0 8px; font-size: 15px; }
       .dialog .hint { color:#555; margin: 0 0 12px; }
+      .dialog-actions { display:flex; gap:8px; justify-content:flex-end; }
       label { display:block; font-size: 11px; color:#555; }
       input, select, textarea {
         width: 100%; box-sizing: border-box; font: inherit; padding: 6px 8px;
@@ -149,7 +307,7 @@ function Style() {
       .kv-row .del:hover { color:#8b1212; border-color:#c88; }
       .add {
         font: 500 11px/1 system-ui; padding: 3px 8px; border-radius: 4px;
-        border: 1px solid #d0d0d0; background:#fff; color:#444;
+        border: 1px solid #d0d0d0; background:#fff; color:#444; cursor:pointer;
       }
       .add:hover { background:#f4f4f4; }
       button {
@@ -168,6 +326,24 @@ function Style() {
       pre { background:#f3f3f3; padding: 8px; border-radius: 6px; overflow:auto; white-space: pre-wrap; word-break: break-all; }
       .error { color:#8b1212; }
       code { background:#eee; padding: 1px 4px; border-radius: 3px; }
+      .loading { color:#666; font-style: italic; }
+
+      .confirm-bar {
+        background: #fff8df; border: 1px solid #e9d77a; border-radius: 6px;
+        padding: 10px 12px;
+      }
+      .confirm-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+      .confirm-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+      .confirm-low  { background:#fbd6d6; color:#8b1212; }
+      .confirm-mid  { background:#fff1c0; color:#7a5d00; }
+      .confirm-high { background:#d6f5d6; color:#1e6b1e; }
+      .confirm-actions { display:flex; gap:6px; }
+      .confirm-notes { margin-top: 8px; }
+      .confirm-help  { margin-top: 4px; }
+
+      .codegen .codegen-tabs { display:inline-flex; gap:6px; align-items:center; }
+      .codegen-tab.active { background:#2a78c0; color:white; border-color:#2a78c0; }
+      .codegen-snippet { max-height: 320px; }
     `}</style>
   );
 }

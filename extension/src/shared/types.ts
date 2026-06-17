@@ -95,3 +95,81 @@ export interface HealthResponse {
 export interface ErrorEnvelope {
   error: { code: string; message: string; details?: unknown };
 }
+
+// --- Parse cascade ---
+
+export type ParseSource = "cache" | "spec" | "extractor" | "profile" | "ai";
+
+export interface ParseRequest {
+  pageUrl: string;
+  scopedMarkdown: string;
+  authSectionMarkdown?: string;
+  framework?: string;
+  structuredHint?: unknown;
+  force?: boolean;
+}
+
+export interface ParseResponse {
+  requestSpec: RequestSpec;
+  source: ParseSource;
+  confidence: number;
+  needsConfirmation: boolean;
+}
+
+// --- Secrets vault ---
+
+export type SecretType = "bearer" | "basic" | "apiKey";
+
+export interface SecretInfo {
+  name: string;
+  type: SecretType;
+  hostHint?: string;
+}
+
+export interface SecretsListResponse {
+  secrets: SecretInfo[];
+}
+
+export interface SecretCreateRequest {
+  name: string;
+  type: SecretType;
+  hostHint?: string;
+  value?: string;
+  username?: string;
+  password?: string;
+}
+
+export interface SecretCreateResponse {
+  name: string;
+}
+
+export interface SecretDeleteResponse {
+  name: string;
+  deleted: boolean;
+}
+
+// --- Consent ---
+
+export interface ConsentRequest {
+  secret: string;
+  host: string;
+}
+
+export interface ConsentResponse {
+  granted: boolean;
+}
+
+// --- Codegen ---
+
+export type GenerateLanguage = "curl" | "python" | "javascript";
+
+export interface GenerateRequest {
+  requestSpec: RequestSpec;
+  language: GenerateLanguage;
+  idiomatic?: boolean;
+}
+
+export interface GenerateResponse {
+  language: GenerateLanguage;
+  code: string;
+}

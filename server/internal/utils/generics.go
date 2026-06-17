@@ -52,3 +52,12 @@ func ExecuteWithRetry[T any](
 		lastErr,
 	)
 }
+
+func AppendUnique(s []string, v string) []string {
+	for _, x := range s {
+		if x == v {
+			return s
+		}
+	}
+	return append(s, v)
+}

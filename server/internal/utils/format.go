@@ -2,7 +2,10 @@ package utils
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strings"
+
+	"github.com/AdityaSinghRajawat/tryit/server/internal/config"
 )
 
 // BasicAuthValue returns base64(user:pass), the value half of a Basic-auth header.
@@ -28,4 +31,25 @@ func MaskBearer(headerValue string) string {
 		return parts[0] + " " + Mask(parts[1])
 	}
 	return Mask(headerValue)
+}
+
+func PrettyJSON(raw json.RawMessage) string {
+	var v any
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return string(raw)
+	}
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return string(raw)
+	}
+	return string(b)
+}
+
+func PlaceholderToEnv(ref string) (envName, secretName string) {
+	re := config.GetSecretPlaceholderRegex()
+	m := re.FindStringSubmatch(ref)
+	if len(m) < 2 {
+		return "", ""
+	}
+	return config.GetSecretEnvPrefix() + m[1], m[1]
 }

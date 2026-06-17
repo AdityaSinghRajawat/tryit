@@ -268,3 +268,34 @@ func StripHeaderName(headerLine string) string {
 	}
 	return headerLine
 }
+
+func SubstitutePathParams(path string, params []specType.Param) string {
+	out := path
+	for _, p := range params {
+		v := p.Value
+		if v == "" {
+			v = "{" + p.Name + "}"
+		}
+		out = strings.ReplaceAll(out, "{"+p.Name+"}", v)
+	}
+	return out
+}
+
+func BuildQueryString(query []specType.Param) string {
+	if len(query) == 0 {
+		return ""
+	}
+	values := url.Values{}
+	for _, q := range query {
+		if len(q.Values) > 0 {
+			for _, v := range q.Values {
+				values.Add(q.Name, v)
+			}
+			continue
+		}
+		if q.Value != "" {
+			values.Add(q.Name, q.Value)
+		}
+	}
+	return values.Encode()
+}

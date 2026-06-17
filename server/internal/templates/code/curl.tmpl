@@ -1,0 +1,27 @@
+{{- /* curl rendering: each option on its own line for readability */ -}}
+{{- if .EnvVars}}# Required env vars (set before running):
+{{range .EnvVars}}#   export {{.}}=...
+{{end}}
+{{end -}}
+curl -X {{.Method}} '{{.URL}}'{{range .Headers}} \
+  -H '{{.Name}}: {{.Value}}'{{end}}
+{{- if .AuthHeaderName}} \
+  -H "{{.AuthHeaderName}}: {{.AuthHeaderValue}}"
+{{- end}}
+{{- if and (eq .AuthType "basic") .BasicUserEnv .BasicPassEnv}} \
+  -u "${{.BasicUserEnv}}:${{.BasicPassEnv}}"
+{{- end}}
+{{- if eq .BodyEnc "json"}} \
+  -H 'Content-Type: {{.ContentType}}' \
+  -d '{{.BodyJSON}}'
+{{- end}}
+{{- if eq .BodyEnc "form"}} \
+  -H 'Content-Type: {{.ContentType}}'{{range .BodyForm}} \
+  --data-urlencode '{{.Name}}={{.Value}}'{{end}}
+{{- end}}
+{{- if eq .BodyEnc "multipart"}}{{range .BodyForm}} \
+  -F '{{.Name}}={{.Value}}'{{end}}
+{{- end}}
+{{- if eq .BodyEnc "raw"}} \
+  -d '{{.BodyRaw}}'
+{{- end}}

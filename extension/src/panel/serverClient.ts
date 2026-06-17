@@ -6,12 +6,22 @@ import {
   STORAGE_KEY_PAIR_TOKEN,
 } from "../shared/constants";
 import type {
+  ConsentRequest,
+  ConsentResponse,
+  ErrorEnvelope,
   ExecuteRequest,
   ExecuteResponse,
+  GenerateRequest,
+  GenerateResponse,
   HealthResponse,
   PairRequest,
   PairResponse,
-  ErrorEnvelope,
+  ParseRequest,
+  ParseResponse,
+  SecretCreateRequest,
+  SecretCreateResponse,
+  SecretDeleteResponse,
+  SecretsListResponse,
 } from "../shared/types";
 
 export class ServerError extends Error {
@@ -96,6 +106,50 @@ export const serverClient = {
   execute(req: ExecuteRequest): Promise<ExecuteResponse> {
     return call<ExecuteResponse>(
       "/execute",
+      { method: "POST", body: JSON.stringify(req) },
+      true
+    );
+  },
+
+  parse(req: ParseRequest): Promise<ParseResponse> {
+    return call<ParseResponse>(
+      "/parse",
+      { method: "POST", body: JSON.stringify(req) },
+      true
+    );
+  },
+
+  listSecrets(): Promise<SecretsListResponse> {
+    return call<SecretsListResponse>("/secrets", { method: "GET" }, true);
+  },
+
+  createSecret(req: SecretCreateRequest): Promise<SecretCreateResponse> {
+    return call<SecretCreateResponse>(
+      "/secrets",
+      { method: "POST", body: JSON.stringify(req) },
+      true
+    );
+  },
+
+  deleteSecret(name: string): Promise<SecretDeleteResponse> {
+    return call<SecretDeleteResponse>(
+      "/secrets/" + encodeURIComponent(name),
+      { method: "DELETE" },
+      true
+    );
+  },
+
+  grantConsent(req: ConsentRequest): Promise<ConsentResponse> {
+    return call<ConsentResponse>(
+      "/consent",
+      { method: "POST", body: JSON.stringify(req) },
+      true
+    );
+  },
+
+  generate(req: GenerateRequest): Promise<GenerateResponse> {
+    return call<GenerateResponse>(
+      "/generate",
       { method: "POST", body: JSON.stringify(req) },
       true
     );
