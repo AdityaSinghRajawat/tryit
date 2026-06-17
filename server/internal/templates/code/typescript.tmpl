@@ -1,0 +1,56 @@
+{{- /* typescript: fetch-based snippet. Secrets read via process.env. */ -}}
+{{if .EnvVars}}// Required env vars (set before running):
+{{range .EnvVars}}//   export {{.}}=...
+{{end}}{{end -}}
+const url: string = "{{.URL}}";
+
+const headers: Record<string, string> = {
+{{- range .Headers}}
+  "{{.Name}}": "{{.Value}}",
+{{- end}}
+{{- if and .AuthHeaderName (ne .AuthType "basic")}}
+  "{{.AuthHeaderName}}": `{{.AuthHeaderPrefix}}${process.env.{{.AuthHeaderEnv}}}`,
+{{- end}}
+{{- if eq .AuthType "basic"}}
+  "Authorization": `Basic ${Buffer.from(`${process.env.{{.BasicUserEnv}}}:${process.env.{{.BasicPassEnv}}}`).toString("base64")}`,
+{{- end}}
+{{- if eq .BodyEnc "json"}}
+  "Content-Type": "{{.ContentType}}",
+{{- end}}
+};
+{{- if eq .BodyEnc "json"}}
+
+const payload = {{.BodyJSON}};
+{{- end}}
+{{- if eq .BodyEnc "form"}}
+
+const params = new URLSearchParams();
+{{- range .BodyForm}}
+params.append("{{.Name}}", "{{.Value}}");
+{{- end}}
+{{- end}}
+{{- if eq .BodyEnc "multipart"}}
+
+const form = new FormData();
+{{- range .BodyForm}}
+form.append("{{.Name}}", "{{.Value}}");
+{{- end}}
+{{- end}}
+
+const response = await fetch(url, {
+  method: "{{.Method}}",
+  headers,
+{{- if eq .BodyEnc "json"}}
+  body: JSON.stringify(payload),
+{{- end}}
+{{- if eq .BodyEnc "form"}}
+  body: params,
+{{- end}}
+{{- if eq .BodyEnc "multipart"}}
+  body: form,
+{{- end}}
+{{- if eq .BodyEnc "raw"}}
+  body: `{{.BodyRaw}}`,
+{{- end}}
+});
+console.log(response.status, await response.text());

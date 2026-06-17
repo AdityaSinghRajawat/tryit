@@ -13,6 +13,8 @@ const LANGUAGES: { id: GenerateLanguage; label: string }[] = [
   { id: "curl", label: "curl" },
   { id: "python", label: "Python" },
   { id: "javascript", label: "JavaScript" },
+  { id: "typescript", label: "TypeScript" },
+  { id: "go", label: "Go" },
 ];
 
 export function CodeGenView({ spec }: Props) {

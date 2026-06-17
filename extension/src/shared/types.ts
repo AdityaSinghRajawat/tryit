@@ -161,7 +161,7 @@ export interface ConsentResponse {
 
 // --- Codegen ---
 
-export type GenerateLanguage = "curl" | "python" | "javascript";
+export type GenerateLanguage = "curl" | "python" | "javascript" | "typescript" | "go";
 
 export interface GenerateRequest {
   requestSpec: RequestSpec;

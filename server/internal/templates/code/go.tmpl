@@ -1,0 +1,69 @@
+{{- /* go: standard net/http snippet. Secrets read via os.Getenv. */ -}}
+package main
+
+import (
+{{- if or (eq .BodyEnc "json") (eq .BodyEnc "raw") }}
+	"bytes"
+{{- end}}
+	"fmt"
+	"io"
+	"net/http"
+{{- if eq .BodyEnc "form" }}
+	"net/url"
+{{- end}}
+	"os"
+{{- if eq .BodyEnc "form" }}
+	"strings"
+{{- end}}
+)
+{{if .EnvVars}}
+// Required env vars (set before running):
+{{range .EnvVars}}//   export {{.}}=...
+{{end}}{{end -}}
+func main() {
+	targetUrl := "{{.URL}}"
+{{if eq .BodyEnc "json"}}
+	payload := []byte(`{{.BodyJSON}}`)
+	req, err := http.NewRequest("{{.Method}}", targetUrl, bytes.NewBuffer(payload))
+{{- else if eq .BodyEnc "form"}}
+	data := url.Values{}
+{{- range .BodyForm}}
+	data.Set("{{.Name}}", "{{.Value}}")
+{{- end}}
+	req, err := http.NewRequest("{{.Method}}", targetUrl, strings.NewReader(data.Encode()))
+{{- else if eq .BodyEnc "raw"}}
+	payload := []byte(`{{.BodyRaw}}`)
+	req, err := http.NewRequest("{{.Method}}", targetUrl, bytes.NewBuffer(payload))
+{{- else}}
+	req, err := http.NewRequest("{{.Method}}", targetUrl, nil)
+{{- end}}
+	if err != nil {
+		panic(err)
+	}
+
+{{- range .Headers}}
+	req.Header.Add("{{.Name}}", "{{.Value}}")
+{{- end}}
+{{- if and .AuthHeaderName (ne .AuthType "basic")}}
+	req.Header.Add("{{.AuthHeaderName}}", "{{.AuthHeaderPrefix}}" + os.Getenv("{{.AuthHeaderEnv}}"))
+{{- end}}
+{{- if eq .AuthType "basic"}}
+	req.SetBasicAuth(os.Getenv("{{.BasicUserEnv}}"), os.Getenv("{{.BasicPassEnv}}"))
+{{- end}}
+{{- if eq .BodyEnc "json"}}
+	req.Header.Add("Content-Type", "{{.ContentType}}")
+{{- end}}
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res.StatusCode, string(body))
+}

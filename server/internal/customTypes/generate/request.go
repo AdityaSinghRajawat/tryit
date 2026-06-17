@@ -13,11 +13,13 @@ const (
 	LanguageCurl       Language = "curl"
 	LanguagePython     Language = "python"
 	LanguageJavaScript Language = "javascript"
+	LanguageTypeScript Language = "typescript"
+	LanguageGo         Language = "go"
 )
 
 type GenerateRequest struct {
 	RequestSpec specType.RequestSpec `json:"requestSpec"         validate:"required"`
-	Language    Language             `json:"language"            validate:"required,oneof=curl python javascript"`
+	Language    Language             `json:"language"            validate:"required,oneof=curl python javascript typescript go"`
 	Idiomatic   bool                 `json:"idiomatic,omitempty"`
 }
 
